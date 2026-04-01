@@ -1,0 +1,69 @@
+services:
+  grafana-otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: grafana-otel-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - lgtm-data:/var/lib/grafana
+      - ./grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/custom
+      - ./grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  hello-service:
+    build:
+      context: .
+      dockerfile: hello-service/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - USER_SERVICE_URL=http://user-service:8081
+      - GREETING_SERVICE_URL=http://greeting-service:8082
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+    depends_on:
+      grafana-otel-lgtm:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      greeting-service:
+        condition: service_started
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+    depends_on:
+      grafana-otel-lgtm:
+        condition: service_healthy
+
+  greeting-service:
+    build:
+      context: .
+      dockerfile: greeting-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+    depends_on:
+      grafana-otel-lgtm:
+        condition: service_healthy
+
+volumes:
+  lgtm-data:

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod *)",
+      "Bash(./gradlew *)",
+      "Bash(gradle *)",
+      "Bash(java *)",
+      "Bash(curl *)",
+      "Bash(pkill *)",
+      "Bash(sleep *)",
+      "Bash(cd *)",
+      "Bash(tail *)",
+      "Bash(ps *)",
+      "Bash(grep *)",
+      "Bash(kill *)",
+      "Bash(lsof *)",
+      "Bash(echo *)",
+      "Bash(wc *)",
+      "Bash(docker ps)",
+      "Bash(docker restart *)",
+      "Bash(head *)",
+      "Bash(mv *)",
+      "Bash(nohup *)",
+      "Bash(disown)"
+    ]
+  },
+  "$version": 3
+}
