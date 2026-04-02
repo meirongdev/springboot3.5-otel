@@ -2,6 +2,5 @@ build/
 .gradle/
 *.md
 .github/
-arch-tests/
 **/build/
 **/.gradle/

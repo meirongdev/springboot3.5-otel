@@ -14,11 +14,11 @@ services:
       - ./grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/custom
       - ./grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
   hello-service:
     build:

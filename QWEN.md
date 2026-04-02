@@ -41,10 +41,19 @@ springboot3.5-otel/
 ├── hello-service/       # Orchestrator service (:8080)
 ├── user-service/        # User data service (:8081)
 ├── greeting-service/    # Greeting localization service (:8082)
+├── arch-tests/          # ArchUnit architecture tests
 ├── compose.yaml         # Grafana OTEL LGTM Docker Compose
 ├── docs/
 │   ├── design.md        # Design document
-│   └── plan.md          # Implementation plan
+│   ├── plan.md          # Implementation plan
+│   ├── harness-design.md
+│   ├── harness-plan.md
+│   └── harness-recommendations-2026.md
+├── grafana/
+│   ├── dashboards/      # Grafana dashboard definitions
+│   └── provisioning/    # Grafana provisioning config
+├── scripts/
+│   └── publish-pacts.sh # Pact contract publishing script
 ├── README.md            # User-facing documentation
 ├── QWEN.md              # This file - development context
 └── spec.md              # Original specification
@@ -55,14 +64,16 @@ springboot3.5-otel/
 | Component | Technology |
 |-----------|------------|
 | Runtime | Java 25 |
-| Framework | Spring Boot 3.5.x |
-| Build | Gradle (Kotlin DSL) |
+| Framework | Spring Boot 3.5.0 |
+| Build | Gradle 9.4.1 (Kotlin DSL) |
 | Tracing | Micrometer Tracing + OpenTelemetry Bridge |
 | Metrics | Micrometer + OTLP Registry |
 | Logs | Logback + OpenTelemetry Appender |
 | HTTP Client | Spring RestClient |
 | Database | H2 + Spring Data JDBC + Flyway |
 | Backend | Grafana OTEL LGTM |
+| Testing | JUnit 5, Pact (Contract Testing), ArchUnit, Testcontainers |
+| CI | GitHub Actions |
 
 ## Building and Running
 
@@ -70,7 +81,7 @@ springboot3.5-otel/
 
 - Java 25+
 - Docker & Docker Compose
-- Gradle 8.x (Wrapper included)
+- Gradle 9.x (Wrapper included)
 
 ### Start Observability Backend
 
@@ -78,7 +89,10 @@ springboot3.5-otel/
 docker compose up -d
 ```
 
-Access Grafana: http://localhost:3000
+Access Grafana: http://localhost:3000 (admin/admin)
+
+> **Note**: The `compose.yaml` uses a healthcheck with `curl` to verify Grafana readiness.
+> The `start_period` is set to 60 seconds to allow all LGTM components to start.
 
 ### Build All Services
 
@@ -129,6 +143,47 @@ management.tracing.sampling.probability=1.0
 management.observations.annotations.enabled=true
 ```
 
+## Development Conventions
+
+### Code Style
+
+- **Formatting**: Google Java Format 1.28.0 via Spotless
+- **Static Analysis**: Error Prone enabled
+- **Command**: `./gradlew spotlessCheck`
+
+### Testing Practices
+
+- **Unit Tests**: JUnit 5
+- **Contract Tests**: Pact for consumer-driven contracts
+- **Architecture Tests**: ArchUnit for module dependency rules
+- **End-to-End**: Embedded HTTP smoke tests with downstream stubs
+- **Coverage Gate**: JaCoCo with 60% minimum coverage
+
+### Build Commands
+
+```bash
+# Format check
+./gradlew spotlessCheck
+
+# Full build with tests
+./gradlew clean build
+
+# Coverage report
+./gradlew testCodeCoverageReport
+
+# Run specific service tests
+./gradlew :hello-service:test
+```
+
+### CI/CD
+
+GitHub Actions workflow (`.github/workflows/ci.yml`):
+- Java 25 with Temurin distribution
+- Spotless formatting check
+- Full build and test
+- Artifact uploads: Pact files, JaCoCo reports, test results
+- Optional Pact Broker publishing
+
 ## Spring Boot 3.5 Adaptation Notes
 
 | Feature | Spring Boot 4 | Spring Boot 3.5 |
@@ -136,20 +191,56 @@ management.observations.annotations.enabled=true
 | OTel Starter | `spring-boot-starter-opentelemetry` | Not available |
 | Tracing Bridge | Built-in | `micrometer-tracing-bridge-otel` |
 | OTLP Export | Auto-configured | Manual `opentelemetry-exporter-otlp` |
-| Logback Appender | Auto-installed | Manual `OpenTelemetryAppender` setup |
+| Logback Appender | Auto-installed | Manual `OpenTelemetryAppender` via `@PostConstruct` |
 | Metrics Export | Built-in OTLP | `micrometer-registry-otlp` |
 
-## Development Conventions
+## Module Details
 
-- **Code Style**: Follow Spring Boot conventions
-- **Package Structure**: `com.example.<service-name>`
-- **Configuration**: Use `application.properties` (not YAML)
-- **Testing**: Integration tests with `@SpringBootTest`
-- **Documentation**: Keep docs/ updated with design decisions
+### shared
 
-## Implementation Status
+Core OpenTelemetry configuration shared across all services:
 
-See `docs/plan.md` for detailed implementation phases.
+- `OpenTelemetryConfig` - JVM metrics (CPU, memory, threads, class loading)
+- `ContextPropagationConfig` - Async task trace context propagation
+- `FilterConfig` - HTTP filters (header logging, trace ID response header)
+- `InstallOpenTelemetryAppender` - Logback OTel appender installation
+- `AcceptLanguageNormalizer` - Language tag normalization utility
+
+### hello-service
+
+Orchestrator service that calls downstream services:
+
+- `HelloController` - `GET /api/{userId}` endpoint
+- `HelloService` - Orchestration logic (sync/async support)
+- `UserServiceClient` - REST client for user-service
+- `GreetingServiceClient` - REST client for greeting-service
+- End-to-end test: `HelloControllerEndToEndTest`
+
+### user-service
+
+User data service with database:
+
+- `UserController` - `GET /api/users/{id}` endpoint
+- `UserService` - Business logic
+- `UserRepository` - Spring Data JDBC repository
+- `User` - JPA entity
+- Flyway migrations for schema + seed data
+
+### greeting-service
+
+Multi-language greeting service:
+
+- `GreetingController` - `GET /api/greetings` endpoint
+- Supports: en, zh, ja
+- Accept-Language header parsing
+
+### arch-tests
+
+Architecture tests using ArchUnit:
+
+- Module dependency rules
+- Package structure validation
+- Coding convention enforcement
 
 ## OTel Features Demonstrated
 
@@ -160,3 +251,62 @@ See `docs/plan.md` for detailed implementation phases.
 5. **Log Correlation** - Logs with Trace ID / Span ID
 6. **Manual Spans** - Programmatic Span creation
 7. **OTLP Export** - gRPC/HTTP telemetry export
+8. **HTTP Observation** - Auto-tracing of HTTP requests
+
+## Quality Gates
+
+| Gate | Tool | Threshold |
+|------|------|-----------|
+| Formatting | Spotless | Google Java Format |
+| Static Analysis | Error Prone | Enabled |
+| Coverage | JaCoCo | 60% minimum |
+| Contracts | Pact | Consumer + Provider verification |
+| Architecture | ArchUnit | Module rules enforced |
+
+## Implementation Status
+
+See `docs/plan.md` for detailed implementation phases. All core features are implemented and tested.
+
+## Docker Build Notes
+
+### Multi-Module Build Configuration
+
+The Docker build requires all project modules to be present in the build context because `settings.gradle.kts` includes all modules:
+- `shared/`
+- `arch-tests/`
+- `hello-service/`
+- `user-service/`
+- `greeting-service/`
+
+Each service Dockerfile copies all modules to satisfy Gradle's project configuration requirements.
+
+### .dockerignore Configuration
+
+The `.dockerignore` file excludes build artifacts but includes all source modules:
+```
+build/
+.gradle/
+*.md
+.github/
+**/build/
+**/.gradle/
+```
+
+### Healthcheck Configuration
+
+The Grafana OTEL LGTM container uses `curl` for health checks (not `wget`, which is unavailable):
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "-s", "http://localhost:3000/api/health"]
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 60s
+```
+
+## Related Documentation
+
+- `docs/design.md` - Architecture and design decisions
+- `docs/plan.md` - Implementation plan and phases
+- `docs/harness-recommendations-2026.md` - 2026 engineering recommendations
+- `README.md` - User-facing quick start guide

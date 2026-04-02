@@ -1,5 +1,6 @@
 package com.example.hello;
 
+import com.example.shared.http.AcceptLanguageNormalizer;
 import java.net.URI;
 import org.springframework.web.client.RestClient;
 
@@ -15,10 +16,11 @@ public class GreetingServiceClient {
   }
 
   public GreetingDTO getGreeting(String acceptLanguage) {
+    String normalizedLanguage = AcceptLanguageNormalizer.normalize(acceptLanguage);
     return restClient
         .get()
         .uri(URI.create(greetingServiceUrl + "/api/greetings"))
-        .header("Accept-Language", acceptLanguage)
+        .header("Accept-Language", normalizedLanguage)
         .retrieve()
         .body(GreetingDTO.class);
   }

@@ -9,7 +9,9 @@ dependencies {
     implementation(project(":shared"))
     implementation("org.springframework.boot:spring-boot-starter-web")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "com.vaadin.external.google", module = "android-json")
+    }
     testImplementation("au.com.dius.pact.provider:junit5spring:4.6.17")
 }
 

@@ -12,7 +12,9 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     runtimeOnly("com.h2database:h2")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "com.vaadin.external.google", module = "android-json")
+    }
     testImplementation("au.com.dius.pact.provider:junit5spring:4.6.17")
 }
 

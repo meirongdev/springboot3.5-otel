@@ -14,7 +14,9 @@ dependencies {
     testImplementation(project(":hello-service"))
     testImplementation(project(":user-service"))
     testImplementation(project(":greeting-service"))
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "com.vaadin.external.google", module = "android-json")
+    }
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

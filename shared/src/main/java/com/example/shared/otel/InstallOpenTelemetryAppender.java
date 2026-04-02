@@ -1,13 +1,21 @@
 package com.example.shared.otel;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Installs OpenTelemetry Logback Appender at startup. */
 @Component
 public class InstallOpenTelemetryAppender {
+
+  private static final Logger log = LoggerFactory.getLogger(InstallOpenTelemetryAppender.class);
+
+  @Autowired(required = false)
+  private OpenTelemetry openTelemetry;
 
   @PostConstruct
   public void install() {
@@ -16,8 +24,15 @@ public class InstallOpenTelemetryAppender {
 
     var otelAppender = new OpenTelemetryAppender();
     otelAppender.setContext(loggerContext);
-    otelAppender.start();
 
+    if (openTelemetry != null) {
+      log.info("OpenTelemetry bean is present, configuring OpenTelemetryAppender for log export");
+      otelAppender.setOpenTelemetry(openTelemetry);
+    } else {
+      log.warn("OpenTelemetry bean is NOT present, OpenTelemetryAppender will not export logs to OTLP");
+    }
+
+    otelAppender.start();
     rootLogger.addAppender(otelAppender);
   }
 }

@@ -1,6 +1,6 @@
 package com.example.greeting;
 
-import java.util.Locale;
+import com.example.shared.http.AcceptLanguageNormalizer;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,11 +12,10 @@ public class GreetingController {
   @GetMapping("/api/greetings")
   public Greeting getGreeting(
       @RequestHeader(value = "Accept-Language", defaultValue = "en") String acceptLanguage) {
-    Locale locale = Locale.forLanguageTag(acceptLanguage);
-    String language = locale.getLanguage();
+    String language = AcceptLanguageNormalizer.normalize(acceptLanguage);
 
     String message =
-        switch (language.toLowerCase()) {
+        switch (language) {
           case "zh" -> "你好，世界！";
           case "ja" -> "こんにちは世界！";
           default -> "Hello, World!";

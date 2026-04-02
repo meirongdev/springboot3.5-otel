@@ -2,39 +2,66 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main, master ]
   pull_request:
-    branches: [main]
-
-permissions:
-  contents: read
+    branches: [ '**' ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-java@v5
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
 
-      - name: Check code format
-        run: ./gradlew spotlessCheck
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x gradlew
 
-      - name: Build & Test
-        run: ./gradlew build
+      - name: Spotless Check
+        run: ./gradlew spotlessCheck --no-daemon --console=plain
 
-      - name: Coverage Report
-        run: ./gradlew testCodeCoverageReport
+      - name: Build and run tests
+        run: ./gradlew clean build --no-daemon --console=plain
 
-      - name: Upload Coverage Report
+      - name: Upload Pact files
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: build/reports/jacoco/testCodeCoverageReport/html/
+          name: pacts
+          path: build/pacts
           retention-days: 7
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-reports
+          path: '**/build/reports/jacoco/**'
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/test-results/**'
+
+      - name: Publish pacts to Pact Broker (optional)
+        if: ${{ secrets.PACT_BROKER_BASE_URL && secrets.PACT_BROKER_TOKEN }}
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+        run: |
+          chmod +x ./scripts/publish-pacts.sh
+          ./scripts/publish-pacts.sh

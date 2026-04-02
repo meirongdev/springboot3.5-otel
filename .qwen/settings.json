@@ -21,7 +21,16 @@
       "Bash(head *)",
       "Bash(mv *)",
       "Bash(nohup *)",
-      "Bash(disown)"
+      "Bash(disown)",
+      "WebSearch",
+      "WebFetch(github.com)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose ps)",
+      "Bash(docker exec *)",
+      "Bash(docker compose down)",
+      "Bash(docker compose up *)",
+      "Bash(rm *)",
+      "Bash(jq *)"
     ]
   },
   "$version": 3

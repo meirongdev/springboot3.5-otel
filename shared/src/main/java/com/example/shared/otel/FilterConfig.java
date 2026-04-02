@@ -19,8 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Configuration
 public class FilterConfig {
 
-  private static final Logger log = LoggerFactory.getLogger(FilterConfig.class);
-
   @Bean
   @Order(Ordered.HIGHEST_PRECEDENCE)
   public Filter headerLoggerFilter() {

@@ -44,6 +44,15 @@ class GreetingControllerTest {
   }
 
   @Test
+  void shouldHonorWeightedAcceptLanguageHeader() throws Exception {
+    mockMvc
+        .perform(get("/api/greetings").header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.language").value("zh"))
+        .andExpect(jsonPath("$.message").value("你好，世界！"));
+  }
+
+  @Test
   void shouldDefaultToEnglish() throws Exception {
     mockMvc
         .perform(get("/api/greetings"))
