@@ -58,7 +58,7 @@ jobs:
           path: '**/build/test-results/**'
 
       - name: Publish pacts to Pact Broker (optional)
-        if: ${{ secrets.PACT_BROKER_BASE_URL && secrets.PACT_BROKER_TOKEN }}
+        if: ${{ secrets.PACT_BROKER_BASE_URL != '' && secrets.PACT_BROKER_TOKEN != '' }}
         env:
           PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
           PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
