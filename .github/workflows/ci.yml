@@ -56,12 +56,3 @@ jobs:
         with:
           name: test-reports
           path: '**/build/test-results/**'
-
-      - name: Publish pacts to Pact Broker (optional)
-        if: ${{ secrets.PACT_BROKER_BASE_URL != '' && secrets.PACT_BROKER_TOKEN != '' }}
-        env:
-          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
-          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
-        run: |
-          chmod +x ./scripts/publish-pacts.sh
-          ./scripts/publish-pacts.sh
