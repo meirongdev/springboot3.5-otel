@@ -29,8 +29,8 @@ services:
       - OTEL_DEPLOYMENT_ENVIRONMENT=docker-compose
     volumes:
       - ./grafana/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
-    ports:
-      - "13133:13133"
+    expose:
+      - "13133"
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol/config.yaml"]
       interval: 10s
