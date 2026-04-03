@@ -264,7 +264,9 @@ generate_traffic() {
   curl -fsS -H "Accept-Language: zh" "http://localhost:8080/api/1" >/dev/null 2>&1 || true
   curl -fsS -H "Accept-Language: ja" "http://localhost:8080/api/1" >/dev/null 2>&1 || true
 
-  sleep 5
+  if [ "$WAIT_READY" != true ]; then
+    sleep 5
+  fi
   log_success "Verification traffic generated"
 }
 
@@ -461,6 +463,39 @@ collect_service_evidence() {
     }'
 }
 
+service_telemetry_ready() {
+  local service="$1"
+  local service_report=""
+
+  if ! service_report="$(collect_service_evidence "$service" 2>/dev/null)"; then
+    return 1
+  fi
+
+  jq -e '.status == "verified"' <<<"$service_report" >/dev/null 2>&1
+}
+
+all_service_telemetry_ready() {
+  local service
+
+  for service in "${SERVICES[@]}"; do
+    service_telemetry_ready "$service" || return 1
+  done
+}
+
+wait_for_telemetry_evidence() {
+  if [ "$WAIT_READY" != true ]; then
+    return 0
+  fi
+
+  log_info "Waiting for telemetry evidence to become queryable..."
+  if wait_until "telemetry evidence" all_service_telemetry_ready; then
+    log_success "Telemetry evidence is queryable for all services"
+    return 0
+  fi
+
+  return 1
+}
+
 verify_logs() {
   local hello_logs trace_context_present="false"
   local loki_labels_response=""
@@ -638,6 +673,7 @@ main() {
 
   if [ "$runtime_ready" = true ] && jq -e '.status == "healthy"' <<<"$COLLECTOR_REPORT" >/dev/null 2>&1; then
     generate_traffic
+    wait_for_telemetry_evidence || true
   else
     log_warning "Skipping traffic generation because runtime prerequisites are incomplete"
   fi
