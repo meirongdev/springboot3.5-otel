@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: hello-service
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+
+user:
+  service:
+    url: http://localhost:8081
+
+greeting:
+  service:
+    url: http://localhost:8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s
+    logging:
+      endpoint: http://localhost:4318/v1/logs
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true
+
+logging:
+  level:
+    com.example: debug
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

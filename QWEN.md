@@ -44,11 +44,12 @@ springboot3.5-otel/
 ├── arch-tests/          # ArchUnit architecture tests
 ├── compose.yaml         # Grafana OTEL LGTM Docker Compose
 ├── docs/
-│   ├── design.md        # Design document
-│   ├── plan.md          # Implementation plan
-│   ├── harness-design.md
-│   ├── harness-plan.md
-│   └── harness-recommendations-2026.md
+│   ├── ARCHITECTURE.md  # Architecture & implementation guide
+│   ├── README.md        # Documentation index
+│   ├── docker-fixes.md  # Docker troubleshooting
+│   ├── VERIFICATION-HARNESS.md          # OTel verification harness
+│   ├── JFR-OBSERVABILITY-GUIDE.md       # JFR + OTel guide
+│   ├── SPRINGBOOT-OTEL-RECOMMENDATION.md # OTel approach comparison
 ├── grafana/
 │   ├── dashboards/      # Grafana dashboard definitions
 │   └── provisioning/    # Grafana provisioning config
@@ -128,20 +129,33 @@ curl -H "Accept-Language: ja" http://localhost:8080/api/1
 
 ## Key Configuration
 
-### OpenTelemetry Export (application.properties)
+### OpenTelemetry Export (application.yaml)
 
-```properties
-# OTLP Traces endpoint
-management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
-# OTLP Metrics endpoint
-management.otlp.metrics.export.url=http://localhost:4318/v1/metrics
-# Metrics export interval
-management.otlp.metrics.export.step=10s
-# Sampling rate (1.0 = 100%)
-management.tracing.sampling.probability=1.0
-# Enable observation annotations
-management.observations.annotations.enabled=true
+```yaml
+spring:
+  threads:
+    virtual:
+      enabled: true          # Java 25 Virtual Threads
+
+management:
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s
+    logging:
+      endpoint: http://localhost:4318/v1/logs   # Spring Boot 3.4+
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true
 ```
+
+> **Note**: `micrometer-registry-otlp` exports durations in milliseconds (`_milliseconds` suffix), not seconds.
 
 ## Development Conventions
 
@@ -191,20 +205,19 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 | OTel Starter | `spring-boot-starter-opentelemetry` | Not available |
 | Tracing Bridge | Built-in | `micrometer-tracing-bridge-otel` |
 | OTLP Export | Auto-configured | Manual `opentelemetry-exporter-otlp` |
-| Logback Appender | Auto-installed | Manual `OpenTelemetryAppender` via `@PostConstruct` |
+| Logback Appender | Auto-installed | `logback-spring.xml` + `OtelLogAppenderInstaller` |
+| Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | Metrics Export | Built-in OTLP | `micrometer-registry-otlp` |
 
 ## Module Details
 
 ### shared
 
-Core OpenTelemetry configuration shared across all services:
+Shared OTel configuration used by all services. Most OTel wiring is handled by Spring Boot auto-configuration; the shared module provides:
 
-- `OpenTelemetryConfig` - JVM metrics (CPU, memory, threads, class loading)
-- `ContextPropagationConfig` - Async task trace context propagation
-- `FilterConfig` - HTTP filters (header logging, trace ID response header)
-- `InstallOpenTelemetryAppender` - Logback OTel appender installation
-- `AcceptLanguageNormalizer` - Language tag normalization utility
+- `OtelLogAppenderInstaller` - Bridges Spring-managed `OpenTelemetry` bean to Logback appender (Spring Boot 3.5 does not auto-install this)
+- `AcceptLanguageNormalizer` - Language tag normalization utility (weighted `Accept-Language` → simple tag)
+- `logback-spring.xml` - Declares the OpenTelemetry Logback appender for OTLP log export
 
 ### hello-service
 
@@ -265,7 +278,7 @@ Architecture tests using ArchUnit:
 
 ## Implementation Status
 
-See `docs/plan.md` for detailed implementation phases. All core features are implemented and tested.
+All core features are implemented and tested. See `docs/ARCHITECTURE.md` for detailed architecture documentation.
 
 ## Docker Build Notes
 
@@ -306,7 +319,8 @@ healthcheck:
 
 ## Related Documentation
 
-- `docs/design.md` - Architecture and design decisions
-- `docs/plan.md` - Implementation plan and phases
-- `docs/harness-recommendations-2026.md` - 2026 engineering recommendations
+- `docs/ARCHITECTURE.md` - Architecture & implementation guide
+- `docs/VERIFICATION-HARNESS.md` - OTel verification harness
+- `docs/JFR-OBSERVABILITY-GUIDE.md` - JFR + OTel best practices
+- `docs/SPRINGBOOT-OTEL-RECOMMENDATION.md` - OTel approach comparison
 - `README.md` - User-facing quick start guide

@@ -13,6 +13,7 @@ services:
       - lgtm-data:/var/lib/grafana
       - ./grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/custom
       - ./grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml
+      - ./grafana/provisioning/disable-defaults.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/grafana-dashboards.yaml
     healthcheck:
       test: ["CMD", "curl", "-f", "-s", "http://localhost:3000/api/health"]
       interval: 10s
@@ -27,10 +28,20 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Service discovery
       - USER_SERVICE_URL=http://user-service:8081
       - GREETING_SERVICE_URL=http://greeting-service:8082
+      # OpenTelemetry
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      # JFR Profiling (JDK_JAVA_OPTIONS)
+      - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/
+      # Actuator
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,metrics,threaddump
+      - SPRING_APPLICATION_NAME=hello-service
+    volumes:
+      - ./logs/hello-service:/logs
     depends_on:
       grafana-otel-lgtm:
         condition: service_healthy
@@ -46,8 +57,17 @@ services:
     ports:
       - "8081:8081"
     environment:
+      # OpenTelemetry
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      # JFR Profiling (JDK_JAVA_OPTIONS)
+      - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M
+      # Actuator
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,metrics,threaddump
+      - SPRING_APPLICATION_NAME=user-service
+    volumes:
+      - ./logs/user-service:/logs
     depends_on:
       grafana-otel-lgtm:
         condition: service_healthy
@@ -59,8 +79,17 @@ services:
     ports:
       - "8082:8082"
     environment:
+      # OpenTelemetry
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      # JFR Profiling (JDK_JAVA_OPTIONS)
+      - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M
+      # Actuator
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,metrics,threaddump
+      - SPRING_APPLICATION_NAME=greeting-service
+    volumes:
+      - ./logs/greeting-service:/logs
     depends_on:
       grafana-otel-lgtm:
         condition: service_healthy

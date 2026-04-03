@@ -102,7 +102,8 @@ All services export telemetry via OTLP (gRPC :4317 / HTTP :4318).
 | OTel Starter | `spring-boot-starter-opentelemetry` | Not available |
 | Tracing Bridge | Built-in | `micrometer-tracing-bridge-otel` |
 | OTLP Export | Auto-configured | Manual `opentelemetry-exporter-otlp` |
-| Logback Appender | Auto-installed | Manual via `@PostConstruct` |
+| Logback Appender | Auto-installed | `logback-spring.xml` + `OtelLogAppenderInstaller` |
+| Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | Metrics Export | Built-in OTLP | `micrometer-registry-otlp` |
 
 ---
@@ -126,11 +127,11 @@ springboot3.5-otel/
 
 Provides shared observability configuration:
 
-- `OpenTelemetryConfig` - JVM metrics registration
-- `ContextPropagationConfig` - Async task trace context propagation
-- `FilterConfig` - HTTP filters (header logging, trace ID response header)
-- `InstallOpenTelemetryAppender` - Logback OTel appender installation
-- `AcceptLanguageNormalizer` - Language tag normalization utility
+- `OtelLogAppenderInstaller` - Bridges Spring-managed `OpenTelemetry` bean to Logback appender (Spring Boot 3.5 does not auto-install this)
+- `AcceptLanguageNormalizer` - Language tag normalization utility (weighted `Accept-Language` → simple tag)
+- `logback-spring.xml` - Declares the OpenTelemetry Logback appender for OTLP log export
+
+JVM metrics, OTLP trace/metric export, and async context propagation are all handled by Spring Boot auto-configuration. Virtual Threads (`spring.threads.virtual.enabled: true`) replace manual `ThreadPoolTaskExecutor`.
 
 ### 3.2 Service Modules
 
@@ -144,20 +145,33 @@ Provides shared observability configuration:
 
 ## 4. Configuration
 
-### 4.1 OpenTelemetry Export (application.properties)
+### 4.1 OpenTelemetry Export (application.yaml)
 
-```properties
-# OTLP Traces endpoint
-management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
-# OTLP Metrics endpoint
-management.otlp.metrics.export.url=http://localhost:4318/v1/metrics
-# Metrics export interval
-management.otlp.metrics.export.step=10s
-# Sampling rate (1.0 = 100%)
-management.tracing.sampling.probability=1.0
-# Enable observation annotations
-management.observations.annotations.enabled=true
+```yaml
+spring:
+  threads:
+    virtual:
+      enabled: true          # Java 25 Virtual Threads
+
+management:
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s
+    logging:
+      endpoint: http://localhost:4318/v1/logs   # Spring Boot 3.4+
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true
 ```
+
+> **Note**: `micrometer-registry-otlp` exports durations in milliseconds (`http_server_requests_milliseconds_*`), not seconds.
 
 ### 4.2 Docker Compose Healthcheck
 

@@ -1,10 +1,45 @@
-.gradle
+# Build & Gradle
+.gradle/
 build/
 target/
+*.class
+gradle-app.setting
+
+# IDE
 *.iml
 *.ipr
 *.iws
 .idea/
 .vscode/
-*.log
+.eclipse/
+.project
+.classpath
+.settings/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs & Profiling
+*.log
+logs/
+jfr-recordings/
+*.jfr
+*.hprof
+
+# JVM & Database
+*.db
+*.sqlite
+h2/
+
+# Local configuration
+*.env.local
+.claude/settings.local.json
+.qwen/settings.json
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+.#*

@@ -33,8 +33,9 @@
 | Framework | Spring Boot 3.5.0 |
 | Build | Gradle 9.4.1 (Kotlin DSL) |
 | Tracing | **Micrometer Tracing** + OpenTelemetry Bridge (Spring 官方推荐) |
-| Metrics | Micrometer + OTLP Registry |
-| Logs | Logback + OpenTelemetry Appender |
+| Metrics | Micrometer + OTLP Registry (`_milliseconds` 单位) |
+| Logs | Logback + OpenTelemetry Appender + `logback-spring.xml` |
+| Profiling | JFR (Java Flight Recorder, JDK 内置) |
 | HTTP Client | Spring RestClient |
 | Database | H2 + Spring Data JDBC + Flyway |
 | Backend | Grafana OTEL LGTM |
@@ -258,7 +259,7 @@ make test-arch       # 运行架构测试
 
 ```
 springboot3.5-otel/
-├── shared/              # 公共 OTel 配置模块
+├── shared/              # 公共 OTel 配置模块（OtelLogAppenderInstaller + logback-spring.xml）
 ├── hello-service/       # 编排服务 (:8080)
 ├── user-service/        # 用户服务 (:8081)
 ├── greeting-service/    # 问候语服务 (:8082)
@@ -301,8 +302,9 @@ springboot3.5-otel/
 | OTel Starter | `spring-boot-starter-opentelemetry` | 不可用 |
 | Tracing Bridge | 内置 | `micrometer-tracing-bridge-otel` |
 | OTLP Export | 自动配置 | 手动添加 `opentelemetry-exporter-otlp` |
-| Logback Appender | 自动安装 | 通过 `@PostConstruct` 手动注册 |
-| Metrics Export | 内置 OTLP | `micrometer-registry-otlp` |
+| Logback Appender | 自动安装 | `logback-spring.xml` + `OtelLogAppenderInstaller`（需手动桥接） |
+| Metrics Export | 内置 OTLP | `micrometer-registry-otlp`（`_milliseconds` 单位） |
+| Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | RestClient | N/A | Spring Boot 3.5 原生支持（3.2+ 引入） |
 
 ## CI/CD

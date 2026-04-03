@@ -31,6 +31,18 @@ help:
 	@echo "  make test-contract  - Run Pact contract tests"
 	@echo "  make test-arch      - Run architecture tests"
 	@echo ""
+	@echo "  make verify-otel    - Verify OpenTelemetry data collection"
+	@echo "  make verify-otel-verbose - Verify OTel with detailed output"
+	@echo "  make verify-otel-wait    - Verify OTel (wait for Grafana)"
+	@echo "  make dev-full       - Full dev workflow: build + test + verify OTel"
+	@echo ""
+	@echo "Profiling (JFR):"
+	@echo "  make jfr-run        - Run hello-service with JFR profiling"
+	@echo "  make jfr-check      - Check active JFR recordings"
+	@echo "  make jfr-dump       - Dump current JFR recording"
+	@echo "  make jfr-flame      - Generate flame graph from latest JFR"
+	@echo "  make jfr-analyze    - Analyze latest JFR recording"
+	@echo ""
 	@echo "  make docs           - Open documentation in browser"
 	@echo ""
 	@echo "Grafana: http://localhost:3000 (admin/admin)"
@@ -113,3 +125,59 @@ docs:
 
 # Quick test command for development
 dev-test: clean fmt check test coverage
+
+# OpenTelemetry verification
+verify-otel:
+	@chmod +x scripts/verify-otel.sh
+	@./scripts/verify-otel.sh
+
+verify-otel-verbose:
+	@chmod +x scripts/verify-otel.sh
+	@./scripts/verify-otel.sh --verbose
+
+verify-otel-wait:
+	@chmod +x scripts/verify-otel.sh
+	@./scripts/verify-otel.sh --wait
+
+# Full development workflow with OTel verification
+dev-full: dev-test verify-otel
+
+# =============================================================================
+# JFR Profiling Commands
+# =============================================================================
+
+jfr-run:
+	@chmod +x scripts/run-with-jfr.sh
+	@./scripts/run-with-jfr.sh hello-service
+
+jfr-run-user:
+	@chmod +x scripts/run-with-jfr.sh
+	@./scripts/run-with-jfr.sh user-service
+
+jfr-run-greeting:
+	@chmod +x scripts/run-with-jfr.sh
+	@./scripts/run-with-jfr.sh greeting-service
+
+jfr-check:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh check hello-service
+
+jfr-dump:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh dump hello-service
+
+jfr-stop:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh stop hello-service
+
+jfr-analyze:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh analyze $$(ls -t jfr-recordings/*.jfr 2>/dev/null | head -1)
+
+jfr-flame:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh flame $$(ls -t jfr-recordings/*.jfr 2>/dev/null | head -1)
+
+jfr-help:
+	@chmod +x scripts/jfr-profiling.sh
+	@./scripts/jfr-profiling.sh help
