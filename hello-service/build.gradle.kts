@@ -12,7 +12,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "com.vaadin.external.google", module = "android-json")
     }
-    testImplementation("au.com.dius.pact.consumer:junit5:4.6.17")
+    testImplementation("au.com.dius.pact.consumer:junit5:4.6.20")
 }
 
 jacoco {

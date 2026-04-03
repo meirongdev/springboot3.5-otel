@@ -10,7 +10,7 @@ import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 
 plugins {
     base
-    id("org.springframework.boot") version "3.5.0" apply false
+    id("org.springframework.boot") version "3.5.12" apply false
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "8.4.0"
     id("net.ltgt.errorprone") version "5.1.0" apply false
@@ -28,7 +28,7 @@ allprojects {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.0")
+        mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.12")
     }
 }
 
@@ -50,7 +50,7 @@ reporting {
 spotless {
     java {
         target("**/*.java")
-        googleJavaFormat("1.28.0")
+        googleJavaFormat("1.34.0")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
@@ -97,7 +97,7 @@ subprojects {
     pluginManager.withPlugin("io.spring.dependency-management") {
         extensions.configure<DependencyManagementExtension> {
             imports {
-                mavenBom("org.testcontainers:testcontainers-bom:1.21.3")
+                mavenBom("org.testcontainers:testcontainers-bom:1.21.4")
             }
         }
     }
