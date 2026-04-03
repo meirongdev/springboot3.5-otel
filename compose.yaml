@@ -22,7 +22,7 @@ services:
       start_period: 60s
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.124.1
+    image: otel/opentelemetry-collector-contrib:0.149.0
     container_name: otel-collector
     command: ["--config=/etc/otelcol/config.yaml"]
     environment:
@@ -32,7 +32,7 @@ services:
     ports:
       - "13133:13133"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol/config.yaml"]
       interval: 10s
       timeout: 5s
       retries: 3
