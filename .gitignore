@@ -43,3 +43,6 @@ h2/
 *.swp
 *~
 .#*
+
+# Git worktrees
+.worktrees/
