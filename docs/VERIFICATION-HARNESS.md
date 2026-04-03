@@ -33,6 +33,8 @@ Verifies the internal Compose Collector is reachable:
 
 **Expected Result**: Collector health endpoint is reachable from the Compose network.
 
+> Note: the checked-in service `application.yaml` files still use `http://localhost:4318/...` defaults. Docker Compose overrides those endpoints at runtime so the effective deployment target is `http://otel-collector:4318/...` inside the Compose network.
+
 ### 2. Metrics Collection (Prometheus)
 
 Verifies that each service is exporting metrics:
@@ -161,7 +163,7 @@ management:
       deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
 ```
 
-The Collector stays internal to Compose; the services provide the required resource attributes in their own config.
+The checked-in `application.yaml` defaults use `localhost` for local execution. The Compose deployment overrides those OTLP endpoints to `otel-collector` at runtime, while the services still provide the required resource attributes in their own config.
 
 ### Local Development
 

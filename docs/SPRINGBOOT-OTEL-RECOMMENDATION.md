@@ -33,6 +33,9 @@ dependencies {
 ```
 
 **配置**：
+
+> 说明：仓库内的 `application.yaml` 默认值仍是 `http://localhost:4318/...`；下面的 `otel-collector` 地址表示 Docker Compose 运行时通过环境变量/覆盖配置生效后的**有效 OTLP 目标**。
+
 ```yaml
 # application.yaml
 management:
@@ -129,6 +132,8 @@ dependencies {
 ```
 
 ### application.yaml
+
+> 说明：这里的 `otel-collector` 仍然是 Compose 部署时的运行时覆盖值；checked-in 默认配置保留 `localhost` 便于本地启动。
 
 ```yaml
 spring:

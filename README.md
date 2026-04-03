@@ -49,7 +49,7 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 
 ### Service OTel Configuration Pattern
 
-服务通过自身配置声明 OTLP 导出目标、采样率和必需资源属性，然后统一发送到 Compose 内部的 `otel-collector`：
+仓库中各服务的 `application.yaml` 默认值仍使用 `http://localhost:4318/...`，便于本地直连调试；在 Docker Compose 运行时，`compose.yaml` 会把这些值覆盖为 Compose 网络内的 `http://otel-collector:4318/...`。下面的示例展示的是 Compose 部署下的**有效运行时配置**：
 
 ```yaml
 management:
@@ -73,7 +73,7 @@ management:
       deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
 ```
 
-这与当前运行系统保持一致：资源属性来自各服务配置，而不是由外部 Collector 注入。
+这与当前运行系统保持一致：资源属性来自各服务配置，而不是由外部 Collector 注入。`otel-collector` 只是 Compose 运行时的 OTLP 目标，不是服务仓库里硬编码的默认值。
 
 ## Quick Start
 
