@@ -31,12 +31,6 @@ services:
       - ./grafana/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     expose:
       - "13133"
-    healthcheck:
-      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol/config.yaml"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     depends_on:
       grafana-otel-lgtm:
         condition: service_healthy
@@ -64,7 +58,7 @@ services:
       - ./logs/hello-service:/logs
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
       user-service:
         condition: service_started
       greeting-service:
@@ -90,7 +84,7 @@ services:
       - ./logs/user-service:/logs
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
 
   greeting-service:
     build:
@@ -112,7 +106,7 @@ services:
       - ./logs/greeting-service:/logs
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   lgtm-data:
