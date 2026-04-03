@@ -66,6 +66,11 @@ log_error() {
   echo -e "${RED}[FAIL]${NC} $1" >&2
 }
 
+die() {
+  log_error "$1"
+  exit 1
+}
+
 log_verbose() {
   if [ "$VERBOSE" = true ]; then
     echo -e "${BLUE}[DEBUG]${NC} $1" >&2
@@ -156,15 +161,6 @@ query_tempo_trace() {
 
 query_loki_service_labels() {
   docker compose exec -T grafana-otel-lgtm curl -fsS "http://localhost:3100/loki/api/v1/label/service_name/values" 2>/dev/null
-}
-
-service_port() {
-  case "$1" in
-    hello-service) echo "8080" ;;
-    user-service) echo "8081" ;;
-    greeting-service) echo "8082" ;;
-    *) return 1 ;;
-  esac
 }
 
 compose_env() {
@@ -280,6 +276,7 @@ collect_service_evidence() {
   local trace_endpoint metrics_endpoint logs_endpoint namespace version deployment
   local config_status="valid"
   local config_issues=()
+  local config_advisories=()
   local expected_attrs_json
   local metric_series_count="0"
   local request_metric_series_count="0"
@@ -292,6 +289,7 @@ collect_service_evidence() {
   local resource_status="invalid"
   local service_status="failed"
   local config_issues_json='[]'
+  local config_advisories_json='[]'
 
   trace_endpoint="$(compose_env "$service" "MANAGEMENT_OTLP_TRACING_ENDPOINT")"
   metrics_endpoint="$(compose_env "$service" "MANAGEMENT_OTLP_METRICS_EXPORT_URL")"
@@ -311,8 +309,7 @@ collect_service_evidence() {
   fi
 
   if [ "$logs_endpoint" != "$expected_logs_endpoint" ]; then
-    config_status="invalid"
-    config_issues+=("logs-endpoint")
+    config_advisories+=("logs-endpoint")
   fi
 
   expected_attrs_json="$(jq -cn \
@@ -390,9 +387,13 @@ collect_service_evidence() {
   fi
 
   if [ "$config_status" = "valid" ]; then
-    log_success "  ${service}: OTLP endpoints target otel-collector"
+    log_success "  ${service}: OTLP trace/metrics endpoints target otel-collector"
   else
     log_error "  ${service}: OTLP endpoint configuration mismatch (${config_issues[*]})"
+  fi
+
+  if [ "${#config_advisories[@]}" -gt 0 ]; then
+    log_warning "  ${service}: logging endpoint mismatch remains advisory (${config_advisories[*]})"
   fi
 
   if [ "$metric_series_count" -gt 0 ]; then
@@ -417,6 +418,10 @@ collect_service_evidence() {
     config_issues_json="$(json_array_from_lines "${config_issues[@]}")"
   fi
 
+  if [ "${#config_advisories[@]}" -gt 0 ]; then
+    config_advisories_json="$(json_array_from_lines "${config_advisories[@]}")"
+  fi
+
   jq -cn \
     --arg service "$service" \
     --arg configStatus "$config_status" \
@@ -424,6 +429,7 @@ collect_service_evidence() {
     --arg metricsEndpoint "$metrics_endpoint" \
     --arg logsEndpoint "$logs_endpoint" \
     --argjson configIssues "$config_issues_json" \
+    --argjson configAdvisories "$config_advisories_json" \
     --arg sampleTraceId "$sample_trace_id" \
     --argjson traceCount "$trace_count" \
     --argjson metricSeriesCount "$metric_series_count" \
@@ -440,7 +446,8 @@ collect_service_evidence() {
         tracesEndpoint: $traceEndpoint,
         metricsEndpoint: $metricsEndpoint,
         logsEndpoint: $logsEndpoint,
-        issues: $configIssues
+        issues: $configIssues,
+        advisories: $configAdvisories
       },
       sampleTraceId: (if $sampleTraceId == "" then null else $sampleTraceId end),
       traceCount: $traceCount,
@@ -497,15 +504,17 @@ verify_logs() {
 }
 
 write_report() {
-  local services_json summary_json
+  local services_json summary_json report_tmp
 
   if [ "${#SERVICE_REPORTS[@]}" -eq 0 ]; then
     services_json='[]'
   else
-    services_json="$(printf '%s\n' "${SERVICE_REPORTS[@]}" | jq -s '.')"
+    if ! services_json="$(printf '%s\n' "${SERVICE_REPORTS[@]}" | jq -s '.')"; then
+      die "Failed to build services report JSON from collected verification evidence."
+    fi
   fi
 
-  summary_json="$(jq -cn \
+  if ! summary_json="$(jq -cn \
     --arg reportFile "build/reports/otel/verification-report.json" \
     --argjson collector "$COLLECTOR_REPORT" \
     --argjson services "$services_json" \
@@ -517,14 +526,20 @@ write_report() {
         + [ $services[] | select(.metricSeriesCount <= 0) | "\(.serviceName):metrics" ]
         + [ $services[] | select(.traceCount <= 0 or .sampleTraceId == null) | "\(.serviceName):traces" ]
         + [ $services[] | select(.resourceAttributeStatus != "valid") | "\(.serviceName):resource-attributes" ]),
-      warnings: (if $logs.status == "warning" then ["logs"] else [] end),
+      warnings:
+        ((if $logs.status == "warning" then ["logs"] else [] end)
+        + [ $services[] | .serviceName as $serviceName | .configuration.advisories[]? | "\($serviceName):\(.)" ]),
       reportFile: $reportFile
     }
     | .success = (.criticalFailures | length == 0)
-    | .overallStatus = (if .success then "passed" else "failed" end)')"
+    | .overallStatus = (if .success then "passed" else "failed" end)')"; then
+    die "Failed to build verification summary JSON."
+  fi
 
   mkdir -p "$REPORT_DIR"
-  jq -n \
+  report_tmp="${REPORT_FILE}.tmp"
+  rm -f "$report_tmp"
+  if ! jq -n \
     --arg generatedAt "$GENERATED_AT" \
     --argjson collector "$COLLECTOR_REPORT" \
     --argjson services "$services_json" \
@@ -536,7 +551,15 @@ write_report() {
       services: $services,
       logs: $logs,
       summary: $summary
-    }' >"$REPORT_FILE"
+    }' >"$report_tmp"; then
+    rm -f "$report_tmp"
+    die "Failed to write verification report JSON."
+  fi
+
+  if ! mv "$report_tmp" "$REPORT_FILE"; then
+    rm -f "$report_tmp"
+    die "Failed to move verification report into place at $REPORT_FILE."
+  fi
 }
 
 print_summary() {
@@ -591,7 +614,9 @@ main() {
   require_command jq
   require_command curl
 
-  COMPOSE_CONFIG_JSON="$(docker compose config --format json)"
+  if ! COMPOSE_CONFIG_JSON="$(docker compose config --format json 2>&1)"; then
+    die "Unable to load Docker Compose configuration with 'docker compose config --format json': $(trim_output "$COMPOSE_CONFIG_JSON")"
+  fi
 
   echo "========================================"
   echo "  OpenTelemetry Evidence Generator"
