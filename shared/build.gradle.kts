@@ -35,4 +35,8 @@ dependencies {
 
     // Spring Boot autoconfigure for OTel
     implementation("org.springframework.boot:spring-boot-starter-aop")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "com.vaadin.external.google", module = "android-json")
+    }
 }

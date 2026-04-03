@@ -4,7 +4,7 @@
   "tags": ["logs", "traces", "springboot", "otel"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "refresh": "10s",
   "time": { "from": "now-15m", "to": "now" },
   "templating": {
@@ -38,7 +38,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 30, "stacking": { "mode": "normal" }, "drawStyle": "bars" }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 30,
+            "stacking": { "mode": "normal" },
+            "drawStyle": "bars"
+          }
         },
         "overrides": []
       },
@@ -46,14 +51,40 @@
     },
     {
       "id": 2,
+      "title": "Recent Traces",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "B",
+          "queryType": "traceql",
+          "query": "{.service.name=~\"${service:regex}\"}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": ["sum"]
+        }
+      }
+    },
+    {
+      "id": 3,
       "title": "Application Logs",
       "type": "logs",
-      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 6 },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 16 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "expr": "{service_name=~\"$service\"}",
-          "refId": "A",
+          "refId": "C",
           "maxLines": 500
         }
       ],

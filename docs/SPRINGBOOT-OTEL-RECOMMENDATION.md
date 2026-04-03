@@ -166,6 +166,8 @@ management:
 
 这些资源属性会进入 Collector，再作为 Tempo / Prometheus / Loki 查询时使用的服务维度。验证脚本也会把 `deployment.environment` 等属性作为必需检查项。
 
+在 dashboard 设计上，优先使用 `service.name` / `service_name` 作为服务维度，而不是 `job`。前者来自资源属性，在直连后端和经过 Collector 的两种拓扑里都更稳定。当前仓库的 **Services Overview** 就基于这个维度展示请求率、错误率和平均延迟；**Logs & Traces** 则依赖共享请求完成日志（`method/path/status/durationMs`）让 Loki 面板在真实流量后持续有数据。
+
 ### JFR Profiling（独立于 OTel）
 
 JFR 是 JDK 内置工具，与 OTel 方案无关：

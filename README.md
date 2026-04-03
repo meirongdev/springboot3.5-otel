@@ -129,6 +129,8 @@ curl -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" http://localhost:8080/api/1
 
 打开 [http://localhost:3000](http://localhost:3000)：
 
+- **Dashboards > Services Overview** - 按 `service_name` 查看请求率、错误率和平均延迟
+- **Dashboards > Logs & Traces** - 同时查看 Log Volume、Recent Traces（Tempo）和 Application Logs（Loki）
 - **Explore > Tempo** - 查看分布式追踪链路
 - **Explore > Loki** - 查看关联 Trace ID 的日志
 - **Explore > Prometheus** - 查看 JVM 和自定义指标
@@ -176,6 +178,8 @@ make verify-otel-verbose
 make verify-otel-wait
 ```
 
+这些 `make verify-otel*` 目标会先执行 `docker compose up -d --build --wait`，再用 `--wait` 模式运行验证脚本，避免拿旧容器/旧镜像或冷启动中的遥测去校验最新源码。
+
 `make verify-otel-wait` 会生成机器可读证据报告：`build/reports/otel/verification-report.json`
 
 验证内容包括：
@@ -185,6 +189,8 @@ make verify-otel-wait
 - ✅ **Required Resource Attributes** - `service.name`、`service.namespace`、`service.version`、`deployment.environment`
 - ✅ **Distributed Tracing** - 跨服务追踪
 - ⚠️ **Logs / Loki** - 保留为 advisory 证据；不会单独决定验证失败
+
+仓库里预置的两个自定义 Grafana dashboard 直接建立在这套数据面上：`Services Overview` 使用 `service_name` 维度展示 RED 指标；`Logs & Traces` 则把 Tempo 最近 trace 查询和 Loki 日志放在同一个页面。共享模块里的请求完成日志会在每次 HTTP 请求后输出 `method/path/status/durationMs`，所以对 `/api/1` 打几次流量后，两个 dashboard 都会持续出现新数据。
 
 详见：[docs/VERIFICATION-HARNESS.md](docs/VERIFICATION-HARNESS.md)
 

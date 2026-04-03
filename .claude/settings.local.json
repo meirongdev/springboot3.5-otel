@@ -3,7 +3,21 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(./gradlew clean:*)",
+      "Bash(docker run:*)",
+      "Bash(curl -s 'http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?query=http_server_requests_milliseconds_count' -u admin:admin)",
+      "Bash(python3 -c \" import sys,json results=json.load\\(sys.stdin\\).get\\('data',{}\\).get\\('result',[]\\) if results: print\\('Labels:', json.dumps\\(results[0]['metric'], indent=2\\)\\) else: print\\('no data'\\) \")",
+      "Bash(curl -s 'http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?query=jvm_memory_used_bytes' -u admin:admin)",
+      "Bash(python3 -c \" import sys,json results=json.load\\(sys.stdin\\).get\\('data',{}\\).get\\('result',[]\\) if results: print\\('Labels:', json.dumps\\(results[0]['metric'], indent=2\\)\\) \")",
+      "Bash(python3 -m json.tool)",
+      "Bash(docker exec grafana-otel-lgtm:*)",
+      "Bash(curl -s http://localhost:8080/api/1 -H \"Accept-Language: zh\")",
+      "Bash(curl -s 'http://localhost:3000/api/datasources' -u admin:admin)",
+      "Bash(python3 -c ':*)",
+      "Bash(curl -sv 'http://localhost:3000/api/datasources/proxy/1/api/v1/query?query=http_server_requests_milliseconds_count' -u admin:admin)",
+      "Bash(python3 -c \" import sys,json data=json.load\\(sys.stdin\\) status=data.get\\('status',''\\) result=data.get\\('data',{}\\).get\\('result',[]\\) print\\(f'status={status}, streams={len\\(result\\)}'\\) for s in result[:2]: print\\(f' labels: {s[\\\\\"stream\\\\\"]}'\\) vals=s.get\\('values',[]\\) print\\(f' entries: {len\\(vals\\)}'\\) if vals: print\\(f' sample: {vals[0][1][:200]}'\\)\" echo \"\" echo \"=== Check if OTel logs are being received ===\" docker exec grafana-otel-lgtm curl -s 'http://127.0.0.1:3100/loki/api/v1/label/service_name/values')",
+      "Bash(docker compose:*)"
     ]
   }
 }

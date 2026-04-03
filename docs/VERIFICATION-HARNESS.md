@@ -6,7 +6,7 @@ The OpenTelemetry verification harness automatically validates that telemetry da
 
 `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 
-It treats Collector availability, OTLP endpoint alignment, metrics, traces, and required resource attributes as critical checks. Loki/log evidence remains advisory.
+It treats Collector availability, OTLP endpoint alignment, metrics, traces, and required resource attributes as critical checks. Loki/log evidence remains advisory, but the shared request-completion filter keeps recent correlated application logs flowing after traffic.
 
 ## Quick Start
 
@@ -20,6 +20,8 @@ make verify-otel-verbose
 # Wait for Grafana and the internal Collector to be ready before verifying
 make verify-otel-wait
 ```
+
+The `make verify-otel*` targets first run `docker compose up -d --build --wait` and then invoke the verification script with `--wait`, so verification checks the current source tree instead of stale containers and does not race cold-start telemetry. If you invoke `./scripts/verify-otel.sh` directly, make sure the Compose stack has already been rebuilt from the current sources.
 
 `make verify-otel-wait` writes a machine-readable evidence report to `build/reports/otel/verification-report.json`.
 
@@ -43,6 +45,8 @@ Verifies that each service is exporting metrics:
 - **Custom Metrics**: Application-specific counters and timers
 
 **Expected Result**: All three services (`hello-service`, `user-service`, `greeting-service`) should have metrics visible in LGTM with matching `service_name`, `service_namespace`, `service_version`, and `deployment_environment` labels.
+
+> The provisioned **Services Overview** dashboard intentionally queries by `service_name` instead of `job`. For this demo stack it also shows **average latency** rather than `histogram_quantile(...)`, because the current OTLP -> LGTM path only exposes `+Inf` `http.server.requests` buckets in Prometheus.
 
 ### 3. Traces Collection (Tempo)
 
@@ -69,8 +73,9 @@ Verifies logging evidence where available:
 - **Trace Context in Logs**: Log lines contain trace ID and span ID
 - **Loki Accessibility**: Grafana can query Loki for logs
 - **Log Correlation**: Logs can be correlated with traces
+- **Recent Request Logs**: Every HTTP request emits a low-cardinality completion log (`method`, `path`, `status`, `durationMs`)
 
-**Note**: Application logs are currently captured in Docker stdout. Loki evidence is advisory; OTLP log ingestion is not required for overall pass/fail.
+**Note**: Loki evidence is still advisory for harness pass/fail, but the shared request-completion logs keep the **Logs & Traces** dashboard populated after real traffic instead of only showing startup logs.
 
 ### 6. Distributed Tracing
 
@@ -78,6 +83,13 @@ Verifies end-to-end trace correlation:
 - **Multi-service Traces**: Single trace spans multiple services
 - **Service Dependency**: Correctly shows service call graph
 - **Trace Completeness**: All spans in a trace are captured
+
+## Dashboard Expectations
+
+After hitting `http://localhost:8080/api/1` a few times, the provisioned dashboards should show:
+
+- **Services Overview**: request rate, error rate, and average latency grouped by `service_name`
+- **Logs & Traces**: log volume, recent Tempo trace search results, and recent application logs from all three services
 
 ## Output Format
 

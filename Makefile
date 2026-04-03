@@ -1,7 +1,7 @@
 # Spring Boot 3.5 + Java 25 OpenTelemetry Demo
 # Makefile for common development tasks
 
-.PHONY: help build test clean run run-all stop fmt check docs up down restart logs
+.PHONY: help build test clean run run-all stop fmt check docs up down restart logs verify-otel verify-otel-verbose verify-otel-wait verify-otel-prepare
 
 # Default target
 help:
@@ -31,9 +31,9 @@ help:
 	@echo "  make test-contract  - Run Pact contract tests"
 	@echo "  make test-arch      - Run architecture tests"
 	@echo ""
-	@echo "  make verify-otel    - Verify OpenTelemetry data collection"
-	@echo "  make verify-otel-verbose - Verify OTel with detailed output"
-	@echo "  make verify-otel-wait    - Verify OTel (wait for Grafana)"
+	@echo "  make verify-otel    - Rebuild current Compose stack, wait, and verify OTel"
+	@echo "  make verify-otel-verbose - Rebuild current Compose stack, wait, and verify OTel with detailed output"
+	@echo "  make verify-otel-wait    - Explicit wait-mode alias for make verify-otel"
 	@echo "  make dev-full       - Full dev workflow: build + test + verify OTel"
 	@echo ""
 	@echo "Profiling (JFR):"
@@ -127,15 +127,19 @@ docs:
 dev-test: clean fmt check test coverage
 
 # OpenTelemetry verification
-verify-otel:
-	@chmod +x scripts/verify-otel.sh
-	@./scripts/verify-otel.sh
+verify-otel-prepare:
+	@echo "Rebuilding current Compose stack for verification..."
+	@docker compose up -d --build --wait
 
-verify-otel-verbose:
+verify-otel: verify-otel-prepare
 	@chmod +x scripts/verify-otel.sh
-	@./scripts/verify-otel.sh --verbose
+	@./scripts/verify-otel.sh --wait
 
-verify-otel-wait:
+verify-otel-verbose: verify-otel-prepare
+	@chmod +x scripts/verify-otel.sh
+	@./scripts/verify-otel.sh --verbose --wait
+
+verify-otel-wait: verify-otel-prepare
 	@chmod +x scripts/verify-otel.sh
 	@./scripts/verify-otel.sh --wait
 

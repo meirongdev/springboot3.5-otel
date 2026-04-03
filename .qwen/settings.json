@@ -30,7 +30,21 @@
       "Bash(docker compose down)",
       "Bash(docker compose up *)",
       "Bash(rm *)",
-      "Bash(jq *)"
+      "Bash(jq *)",
+      "Bash(docker compose exec *)",
+      "Bash(do *)",
+      "Bash(done)",
+      "Bash(sed *)",
+      "Bash(make *)",
+      "Bash(docker compose restart *)",
+      "WebFetch(devnewsletter.com)",
+      "WebFetch(bell-sw.com)",
+      "WebFetch(meirong.dev)",
+      "WebFetch(oneuptime.com)",
+      "WebFetch(medium.com)",
+      "Bash(git restore *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "$version": 3

@@ -12,6 +12,7 @@ A comprehensive bash script that automatically verifies OpenTelemetry data colle
 - ✅ Verifies metrics collection (JVM + HTTP) for all 3 services
 - ✅ Verifies traces collection with TraceQL queries
 - ✅ Verifies logs configuration (trace context propagation)
+- ✅ Generates dashboard-ready request traffic for the provisioned Grafana dashboards
 - ✅ Verifies distributed tracing (multi-service traces)
 - ✅ Provides colored output with pass/fail indicators
 - ✅ Returns proper exit codes for CI/CD integration
@@ -55,11 +56,11 @@ make dev-full           # Full dev workflow (build + test + verify OTel)
 ### 1. Metrics Collection (Prometheus)
 - Queries JVM memory metrics for each service
 - Queries HTTP server request metrics
-- Validates metrics have correct `job` and `service_name` labels
+- Validates metrics have correct `service_name`-derived resource labels
 
 **Example Query:**
 ```bash
-jvm_memory_used_bytes{job="hello-service"}
+jvm_memory_used_bytes{service_name="hello-service"}
 ```
 
 ### 2. Traces Collection (Tempo)
@@ -76,6 +77,7 @@ jvm_memory_used_bytes{job="hello-service"}
 - Checks Docker logs for trace/span ID patterns
 - Validates Loki accessibility
 - Verifies log context propagation
+- Exercises shared request-completion logs so Loki-backed dashboards receive fresh application events
 
 **Pattern Match:**
 ```
@@ -100,33 +102,39 @@ hello-service → user-service + greeting-service
 ========================================
 
 [PASS] Grafana is accessible
+[PASS] Collector reachable from Compose network
 [INFO] Generating test traffic...
 [PASS] Test traffic generated
+[INFO] Waiting for telemetry evidence to become queryable...
+[PASS] Telemetry evidence is queryable for all services
 [INFO] Verifying metrics collection...
-[PASS]   hello-service: JVM metrics collected (8 series)
-[PASS]   user-service: JVM metrics collected (8 series)
-[PASS]   greeting-service: JVM metrics collected (8 series)
+[PASS]   hello-service: JVM metrics collected (24 series)
+[PASS]   user-service: JVM metrics collected (24 series)
+[PASS]   greeting-service: JVM metrics collected (24 series)
 [PASS] Metrics verification: PASSED
 [INFO] Verifying traces collection...
-[PASS]   hello-service: 1 trace(s) found
-[PASS]   user-service: 1 trace(s) found
-[PASS]   greeting-service: 1 trace(s) found
+[PASS]   hello-service: sample trace 7c6ecfc3cb4f2e9f5b1bde6fe63d0ef9
+[PASS]   user-service: sample trace 4e915424233643efab8c82337d741abc
+[PASS]   greeting-service: sample trace 1e64ca41a71d44be936d2175c7b2cdef
 [PASS] Traces verification: PASSED
+[INFO] Verifying required resource attributes...
+[PASS]   hello-service: required resource attributes present
+[PASS]   user-service: required resource attributes present
+[PASS]   greeting-service: required resource attributes present
 [INFO] Verifying logs configuration...
-[PASS] Logs contain trace/span IDs (context propagation enabled)
-[PASS] Logs verification: PASSED (configuration check)
+[WARN] Logs: advisory only; OTLP log ingestion is not required for pass/fail
 [INFO] Verifying distributed tracing...
-[PASS] Distributed tracing: 1 trace(s) with multiple services
+[PASS] Distributed tracing: 3 services in trace (greeting-service,hello-service,user-service)
 [PASS] Distributed tracing verification: PASSED
 
 ========================================
   OpenTelemetry Verification Summary
 ========================================
 
-  Metrics:    ✓ PASSED
-  Traces:     ✓ PASSED
-  Logs:       ✓ PASSED
-  Distributed:✓ PASSED
+  Collector:  ✓ HEALTHY
+  hello-service: ✓ metrics=24 trace=7c6ecfc3cb4f2e9f5b1bde6fe63d0ef9
+  user-service: ✓ metrics=24 trace=4e915424233643efab8c82337d741abc
+  greeting-service: ✓ metrics=24 trace=1e64ca41a71d44be936d2175c7b2cdef
 
 Overall: OpenTelemetry is working correctly!
 ```
@@ -193,9 +201,9 @@ Potential improvements for the verification harness:
    - Check Prometheus alert rules
    - Verify alert manager configuration
 
-3. **Dashboard Verification**
-   - Validate dashboard provisioning
-   - Check dashboard data sources
+3. **Automated Dashboard Verification**
+   - Promote the current manual Grafana API checks into `verify-otel.sh`
+   - Assert that provisioned dashboard queries return non-empty Tempo / Loki / Prometheus data
 
 4. **Performance Metrics**
    - Trace latency validation
