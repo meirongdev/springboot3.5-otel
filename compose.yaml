@@ -21,6 +21,20 @@ services:
       retries: 3
       start_period: 60s
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.124.1
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      - OTEL_DEPLOYMENT_ENVIRONMENT=docker-compose
+    volumes:
+      - ./grafana/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "13133:13133"
+    depends_on:
+      grafana-otel-lgtm:
+        condition: service_healthy
+
   hello-service:
     build:
       context: .
@@ -32,9 +46,9 @@ services:
       - USER_SERVICE_URL=http://user-service:8081
       - GREETING_SERVICE_URL=http://greeting-service:8082
       # OpenTelemetry
-      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
-      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
-      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://otel-collector:4318/v1/logs
       # JFR Profiling (JDK_JAVA_OPTIONS)
       - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/
       # Actuator
@@ -43,8 +57,8 @@ services:
     volumes:
       - ./logs/hello-service:/logs
     depends_on:
-      grafana-otel-lgtm:
-        condition: service_healthy
+      otel-collector:
+        condition: service_started
       user-service:
         condition: service_started
       greeting-service:
@@ -58,9 +72,9 @@ services:
       - "8081:8081"
     environment:
       # OpenTelemetry
-      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
-      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
-      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://otel-collector:4318/v1/logs
       # JFR Profiling (JDK_JAVA_OPTIONS)
       - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M
       # Actuator
@@ -69,8 +83,8 @@ services:
     volumes:
       - ./logs/user-service:/logs
     depends_on:
-      grafana-otel-lgtm:
-        condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   greeting-service:
     build:
@@ -80,9 +94,9 @@ services:
       - "8082:8082"
     environment:
       # OpenTelemetry
-      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/traces
-      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://grafana-otel-lgtm:4318/v1/metrics
-      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://grafana-otel-lgtm:4318/v1/logs
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
+      - MANAGEMENT_OTLP_LOGGING_ENDPOINT=http://otel-collector:4318/v1/logs
       # JFR Profiling (JDK_JAVA_OPTIONS)
       - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M
       # Actuator
@@ -91,8 +105,8 @@ services:
     volumes:
       - ./logs/greeting-service:/logs
     depends_on:
-      grafana-otel-lgtm:
-        condition: service_healthy
+      otel-collector:
+        condition: service_started
 
 volumes:
   lgtm-data:

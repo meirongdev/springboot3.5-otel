@@ -1,0 +1,52 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  resource/defaults:
+    attributes:
+      - key: service.namespace
+        action: upsert
+        value: springboot3.5-otel
+      - key: deployment.environment
+        action: upsert
+        value: ${env:OTEL_DEPLOYMENT_ENVIRONMENT}
+  attributes/sanitize:
+    actions:
+      - key: user.id
+        action: delete
+      - key: user.email
+        action: delete
+
+exporters:
+  otlphttp/lgtm:
+    endpoint: http://grafana-otel-lgtm:4318
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/defaults, attributes/sanitize, batch]
+      exporters: [otlphttp/lgtm]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/defaults, attributes/sanitize, batch]
+      exporters: [otlphttp/lgtm]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/defaults, attributes/sanitize, batch]
+      exporters: [otlphttp/lgtm]
