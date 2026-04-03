@@ -22,7 +22,6 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.149.0
-    container_name: otel-collector
     command: ["--config=/etc/otelcol/config.yaml"]
     environment:
       - OTEL_DEPLOYMENT_ENVIRONMENT=docker-compose
