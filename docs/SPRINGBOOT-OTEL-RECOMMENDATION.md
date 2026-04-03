@@ -12,6 +12,10 @@
 
 Spring 团队明确推荐使用 **Micrometer Tracing** 方案，而非 OpenTelemetry Java Agent。
 
+在本仓库的运行拓扑中，导出路径明确为：
+
+`All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
+
 ---
 
 ## 🎯 方案对比
@@ -42,8 +46,16 @@ management:
       endpoint: http://otel-collector:4318/v1/logs
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+      service.namespace: ${OTEL_SERVICE_NAMESPACE:demo}
+      service.version: ${OTEL_SERVICE_VERSION:1.0.0}
+      deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
 ```
+
+> 说明：推荐由服务配置声明资源属性，再通过 Collector 转发，不依赖外部系统补齐属性。
 
 **优点**：
 - ✅ 无缝集成 Spring Boot 自动配置
@@ -103,7 +115,7 @@ java -javaagent:opentelemetry-javaagent.jar \
 
 ## 🛠️ 本项目配置
 
-本项目采用 **Micrometer Tracing** 方案，配置如下：
+本项目采用 **Micrometer Tracing** 方案，配置如下。Compose 中的 `otel-collector` 使用固定镜像 `otel/opentelemetry-collector-contrib:0.149.0`，并且只在 Compose 网络内部暴露给服务和 `grafana-otel-lgtm`。
 
 ### build.gradle.kts (shared)
 
@@ -127,19 +139,27 @@ spring:
 management:
   otlp:
     tracing:
-      endpoint: http://grafana-otel-lgtm:4318/v1/traces
+      endpoint: http://otel-collector:4318/v1/traces
     metrics:
       export:
-        url: http://grafana-otel-lgtm:4318/v1/metrics
+        url: http://otel-collector:4318/v1/metrics
         step: 10s
     logging:
-      endpoint: http://grafana-otel-lgtm:4318/v1/logs
+      endpoint: http://otel-collector:4318/v1/logs
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+      service.namespace: ${OTEL_SERVICE_NAMESPACE:springboot3.5-otel}
+      service.version: ${OTEL_SERVICE_VERSION:1.0.0}
+      deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
 ```
 
 > **Note**: `micrometer-registry-otlp` 导出的 duration 指标使用 `_milliseconds` 后缀（非 `_seconds`）。
+
+这些资源属性会进入 Collector，再作为 Tempo / Prometheus / Loki 查询时使用的服务维度。验证脚本也会把 `deployment.environment` 等属性作为必需检查项。
 
 ### JFR Profiling（独立于 OTel）
 

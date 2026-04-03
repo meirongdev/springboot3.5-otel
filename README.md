@@ -18,12 +18,15 @@
       │     :8081        │       │     :8082         │
       └──────────────────┘       └───────────────────┘
 
-  All services ──OTLP──► Grafana OTEL LGTM (:3000)
+  All services ──OTLP──► otel-collector ──OTLP──► grafana-otel-lgtm (:3000)
 ```
+
+Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 
 - **hello-service** - 入口编排服务，调用下游服务组合响应
 - **user-service** - 用户数据服务（H2 + Spring Data JDBC + Flyway）
 - **greeting-service** - 多语言问候语服务（支持 en/zh/ja）
+- **otel-collector** - Compose 内部 Collector（`otel/opentelemetry-collector-contrib:0.149.0`），统一接收服务 OTLP 数据并转发到 `grafana-otel-lgtm`
 
 ## Tech Stack
 
@@ -44,6 +47,34 @@
 
 > **Note**: 本项目采用 Spring Boot 官方推荐的 **Micrometer Tracing** 方案，而非 OpenTelemetry Java Agent。详见 [Spring 官方博客](https://spring.io/blog/2025/11/18/opentelemetry-with-spring-boot)。
 
+### Service OTel Configuration Pattern
+
+服务通过自身配置声明 OTLP 导出目标、采样率和必需资源属性，然后统一发送到 Compose 内部的 `otel-collector`：
+
+```yaml
+management:
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 10s
+    logging:
+      endpoint: http://otel-collector:4318/v1/logs
+  tracing:
+    sampling:
+      probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+      service.namespace: ${OTEL_SERVICE_NAMESPACE:springboot3.5-otel}
+      service.version: ${OTEL_SERVICE_VERSION:1.0.0}
+      deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
+```
+
+这与当前运行系统保持一致：资源属性来自各服务配置，而不是由外部 Collector 注入。
+
 ## Quick Start
 
 ### Prerequisites
@@ -63,7 +94,7 @@ docker compose up -d
 
 Grafana UI: [http://localhost:3000](http://localhost:3000) (admin/admin)
 
-> **Note**: The `make up` command waits for Grafana to be healthy before returning.
+> **Note**: The `make up` command waits for Grafana to be healthy before returning. `otel-collector` stays internal to Docker Compose and forwards telemetry to `grafana-otel-lgtm`.
 
 ### 2. Start Services
 
@@ -145,11 +176,15 @@ make verify-otel-verbose
 make verify-otel-wait
 ```
 
+`make verify-otel-wait` 会生成机器可读证据报告：`build/reports/otel/verification-report.json`
+
 验证内容包括：
+- ✅ **Collector Availability** - `grafana-otel-lgtm` 可通过 Compose 内部地址访问 `otel-collector`
 - ✅ **Metrics** - JVM 指标、HTTP 请求指标
 - ✅ **Traces** - 分布式追踪链路
-- ✅ **Logs** - 日志 Trace 上下文关联
+- ✅ **Required Resource Attributes** - `service.name`、`service.namespace`、`service.version`、`deployment.environment`
 - ✅ **Distributed Tracing** - 跨服务追踪
+- ⚠️ **Logs / Loki** - 保留为 advisory 证据；不会单独决定验证失败
 
 详见：[docs/VERIFICATION-HARNESS.md](docs/VERIFICATION-HARNESS.md)
 
