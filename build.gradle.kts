@@ -7,6 +7,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 
 plugins {
     base
@@ -60,7 +61,6 @@ spotless {
 subprojects {
     pluginManager.withPlugin("java") {
         apply(plugin = "net.ltgt.errorprone")
-        apply(plugin = "jacoco")
 
         extensions.configure<JavaPluginExtension> {
             toolchain {
@@ -81,10 +81,6 @@ subprojects {
         tasks.withType(Test::class.java).configureEach {
             useJUnitPlatform()
         }
-
-        extensions.configure<JacocoPluginExtension> {
-            toolVersion = "0.8.13"
-        }
     }
 
     pluginManager.withPlugin("io.spring.dependency-management") {
@@ -97,10 +93,46 @@ subprojects {
             }
         }
     }
+
+    pluginManager.withPlugin("org.springframework.cloud.contract") {
+        val stubs by configurations.creating
+
+        tasks.named("assemble") {
+            dependsOn(tasks.named("verifierStubsJar"))
+        }
+
+        configurations["stubs"].outgoing.artifact(tasks.named("verifierStubsJar"))
+    }
 }
 
-gradle.projectsEvaluated {
-    // No special task dependencies needed for Spring Cloud Contract
-    // Providers build stubs as part of their test task
-    // Consumer uses stubs from local Maven repository
+// Service projects that need full JaCoCo coverage verification
+listOf(":hello-service", ":user-service", ":greeting-service").forEach { projectName ->
+    project(projectName) {
+        pluginManager.apply("jacoco")
+
+        afterEvaluate {
+            extensions.configure<JacocoPluginExtension> {
+                toolVersion = "0.8.13"
+            }
+
+            tasks.withType(Test::class.java).configureEach {
+                finalizedBy(tasks.named("jacocoTestReport"))
+            }
+
+            tasks.named("jacocoTestReport") {
+                dependsOn(tasks.withType(Test::class.java))
+            }
+
+            tasks.withType(JacocoCoverageVerification::class.java).configureEach {
+                dependsOn(tasks.named("jacocoTestReport"))
+                violationRules {
+                    rule { limit { minimum = "0.60".toBigDecimal() } }
+                }
+            }
+
+            tasks.named("check") {
+                dependsOn(tasks.withType(JacocoCoverageVerification::class.java))
+            }
+        }
+    }
 }

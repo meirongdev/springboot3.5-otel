@@ -1,9 +1,8 @@
 spring:
   application:
     name: hello-service
-  threads:
-    virtual:
-      enabled: true
+  config:
+    import: "optional:classpath:application-otel.yaml"
 
 server:
   port: 8080
@@ -24,30 +23,3 @@ management:
   endpoint:
     health:
       show-details: always
-  otlp:
-    tracing:
-      endpoint: http://localhost:4318/v1/traces
-    metrics:
-      export:
-        url: http://localhost:4318/v1/metrics
-        step: 10s
-    logging:
-      endpoint: http://localhost:4318/v1/logs
-  tracing:
-    sampling:
-      probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
-  opentelemetry:
-    resource-attributes:
-      service.name: ${spring.application.name}
-      service.namespace: ${OTEL_SERVICE_NAMESPACE:springboot3.5-otel}
-      service.version: ${OTEL_SERVICE_VERSION:1.0.0}
-      deployment.environment: ${OTEL_DEPLOYMENT_ENVIRONMENT:local}
-  observations:
-    annotations:
-      enabled: true
-
-logging:
-  level:
-    com.example: debug
-  pattern:
-    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

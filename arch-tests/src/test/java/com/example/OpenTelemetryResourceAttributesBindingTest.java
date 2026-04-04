@@ -21,8 +21,15 @@ class OpenTelemetryResourceAttributesBindingTest {
   void shouldBindResourceAttributeKeysWithDots(String module, Path configPath) throws Exception {
     var environment = new StandardEnvironment();
     var loader = new YamlPropertySourceLoader();
-    var resolvedConfigPath = Path.of("..").resolve(configPath).normalize();
 
+    // Load shared OTel config first (imported by all services via spring.config.import)
+    var sharedOtelPath = Path.of("..").resolve("shared/src/main/resources/application-otel.yaml");
+    for (var propertySource : loader.load("shared-otel", new FileSystemResource(sharedOtelPath))) {
+      environment.getPropertySources().addLast(propertySource);
+    }
+
+    // Load service-specific config
+    var resolvedConfigPath = Path.of("..").resolve(configPath).normalize();
     for (var propertySource : loader.load(module, new FileSystemResource(resolvedConfigPath))) {
       environment.getPropertySources().addLast(propertySource);
     }
