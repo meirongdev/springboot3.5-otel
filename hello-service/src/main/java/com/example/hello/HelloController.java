@@ -21,6 +21,4 @@ public class HelloController {
       @RequestHeader(value = "Accept-Language", defaultValue = "en") String acceptLanguage) {
     return helloService.getHello(userId, acceptLanguage);
   }
-
-  public record HelloResponse(Long userId, String userName, String greeting, String language) {}
 }

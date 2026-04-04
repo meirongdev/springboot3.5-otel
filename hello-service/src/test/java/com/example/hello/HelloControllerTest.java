@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -14,7 +13,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestClient;
 
 @WebMvcTest(
     controllers = HelloController.class,
@@ -27,19 +25,10 @@ class HelloControllerTest {
 
   @MockitoBean private HelloService helloService;
 
-  @MockitoBean private RestClient restClient;
-
-  @MockitoBean private RestClient.Builder restClientBuilder;
-
-  @BeforeEach
-  void setUp() {
-    when(restClientBuilder.build()).thenReturn(restClient);
-  }
-
   @Test
   void shouldReturnHelloResponse() throws Exception {
     when(helloService.getHello(1L, "en"))
-        .thenReturn(new HelloController.HelloResponse(1L, "Alice", "Hello, World!", "en"));
+        .thenReturn(new HelloResponse(1L, "Alice", "Hello, World!", "en"));
 
     mockMvc
         .perform(get("/api/1").header("Accept-Language", "en"))
@@ -51,7 +40,7 @@ class HelloControllerTest {
   @Test
   void shouldDefaultAcceptLanguageToEn() throws Exception {
     when(helloService.getHello(2L, "en"))
-        .thenReturn(new HelloController.HelloResponse(2L, "Bob", "Hello, World!", "en"));
+        .thenReturn(new HelloResponse(2L, "Bob", "Hello, World!", "en"));
 
     mockMvc
         .perform(get("/api/2"))

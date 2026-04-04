@@ -6,7 +6,6 @@ import static org.mockito.Mockito.doAnswer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cloud.contract.stubrunner.spring.AutoConfigureStubRunner;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureStubRunner(
@@ -33,8 +33,8 @@ class HelloControllerEndToEndTest {
 
   @Autowired private TestRestTemplate restTemplate;
 
-  @SpyBean private GreetingServiceClient greetingServiceClient;
-  @SpyBean private UserServiceClient userServiceClient;
+  @MockitoSpyBean private GreetingServiceClient greetingServiceClient;
+  @MockitoSpyBean private UserServiceClient userServiceClient;
 
   @org.junit.jupiter.api.BeforeEach
   void setup() {
@@ -74,7 +74,7 @@ class HelloControllerEndToEndTest {
             "http://localhost:" + port + "/api/1",
             HttpMethod.GET,
             new HttpEntity<>(headers),
-            HelloController.HelloResponse.class);
+            HelloResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
