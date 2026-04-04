@@ -17,33 +17,16 @@ build/
 .classpath
 .settings/
 *.code-workspace
+.out
 
 # OS files
 .DS_Store
 .DS_Store?
 ._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
-
-# Documentation (not needed in Docker context)
-*.md
-docs/
-CLAUDE.md
-QWEN.md
-AGENTS.md
-LICENSE
-
-# CI/CD
-.github/
-.git/
-.gitignore
-
-# Local configuration & secrets
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-.claude/
-.qwen/
+ehthumbs.db
 
 # Logs & profiling
 *.log
@@ -53,11 +36,21 @@ jfr-recordings/
 *.hprof
 *.prof
 *.trace
+traces/
 
-# Docker
-.dockerignore
-docker-compose*.yml
-compose*.yaml
+# Database files
+*.db
+*.sqlite
+*.h2.db
+h2/
+*.pid
+
+# Local configuration & secrets
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+.claude/settings.local.json
 
 # Test & coverage
 test-results/
@@ -73,9 +66,13 @@ jacoco/
 *.swp
 *.swo
 *~
+.#*
 
 # Node modules
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Generated sources
 **/generated/
@@ -84,12 +81,9 @@ node_modules/
 # Git worktrees
 .worktrees/
 
-# Database files
-*.db
-*.sqlite
-*.h2.db
-h2/
-
 # Stubs
 stubs/
 stub-runner/
+
+# Docker
+.dockerenv

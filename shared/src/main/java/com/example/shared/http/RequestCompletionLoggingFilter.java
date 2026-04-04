@@ -10,7 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Logs request completion details so Grafana Loki dashboards have recent correlated application logs. */
+/**
+ * Logs request completion details so Grafana Loki dashboards have recent correlated application
+ * logs.
+ */
 @Component
 public class RequestCompletionLoggingFilter extends OncePerRequestFilter {
 

@@ -38,11 +38,17 @@ else
   echo "- JaCoCo: No aggregated coverage report found."
 fi
 
-if [ -d "build/pacts" ]; then
-  pact_count=$(find build/pacts -name "*.json" | wc -l)
-  echo "- Pact: $pact_count contract(s) generated."
+if [ -d "build/stubs" ]; then
+  scc_count=$(find build/stubs -name "*.jar" | wc -l)
+  echo "- SCC: $scc_count stub(s) generated."
 else
-  echo "- Pact: No contract files found in build/pacts."
+  # Also check in project-specific build/libs
+  scc_count=$(find . -name "*-stubs.jar" | wc -l)
+  if [ "$scc_count" -gt 0 ]; then
+    echo "- SCC: $scc_count stub JAR(s) found in build/libs."
+  else
+    echo "- SCC: No contract stubs found (check build/stubs or build/libs)."
+  fi
 fi
 
 # Check for recent test failures

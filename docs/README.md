@@ -58,7 +58,7 @@ docs/
 - See: [ARCHITECTURE.md](ARCHITECTURE.md)#2-technology-stack
 
 ### Testing
-- Unit, Integration, Contract (Pact), Architecture (ArchUnit)
+- Unit, Integration, Contract (Spring Cloud Contract), Architecture (ArchUnit)
 - 60% coverage minimum
 - See: [ARCHITECTURE.md](ARCHITECTURE.md)#5-test-harness
 

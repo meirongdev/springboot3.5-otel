@@ -24,10 +24,7 @@ class RequestCompletionLoggingFilterTest {
 
     filter.doFilter(request, response, chain);
 
-    assertThat(output)
-        .contains("method=GET")
-        .contains("path=/api/1")
-        .contains("status=200");
+    assertThat(output).contains("method=GET").contains("path=/api/1").contains("status=200");
   }
 
   private static void markSuccessful(jakarta.servlet.ServletResponse servletResponse)

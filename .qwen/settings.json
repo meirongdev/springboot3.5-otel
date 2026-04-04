@@ -44,7 +44,9 @@
       "WebFetch(medium.com)",
       "Bash(git restore *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Read(//Users/matthew/projects/meirongdev/blog/content/posts/**)",
+      "Bash(mkdir *)"
     ]
   },
   "$version": 3

@@ -20,7 +20,7 @@ Repository Guidelines
 ```
 docs/           - Architecture, verification harness, Docker fixes
 grafana/        - Dashboards and provisioning for OTEL LGTM
-scripts/        - verify-otel.sh, publish-pacts.sh utilities
+scripts/        - verify-otel.sh, publish-stubs.sh utilities
 .github/        - CI workflow (ci.yml)
 ```
 
@@ -63,17 +63,17 @@ scripts/        - verify-otel.sh, publish-pacts.sh utilities
 
 # Testing Guidelines
 
-**Frameworks:** JUnit 5, AssertJ, Testcontainers, Pact, ArchUnit
+**Frameworks:** JUnit 5, AssertJ, Testcontainers, Spring Cloud Contract, ArchUnit
 
 **Test organization per module:**
 - `*Test.java` - Unit tests
 - `*IntegrationTest.java` - Integration tests with Testcontainers
-- `*PactConsumerTest.java` / `*PactProviderTest.java` - Contract tests
+- `*ContractTest.java` - Contract tests
 
 **Run tests:**
 ```bash
 ./gradlew :hello-service:test --tests HelloControllerTest
-./gradlew test --tests "*Pact*"          # Contract tests
+./gradlew test --tests "*Contract*"         # Contract tests
 ./gradlew :arch-tests:test              # ArchUnit tests
 ./gradlew testCodeCoverageReport        # Coverage report
 ```

@@ -36,10 +36,7 @@ class OpenTelemetryResourceAttributesBindingTest {
 
     assertThat(resourceAttributes.keySet())
         .containsExactlyInAnyOrder(
-            "service.name",
-            "service.namespace",
-            "service.version",
-            "deployment.environment");
+            "service.name", "service.namespace", "service.version", "deployment.environment");
   }
 
   static Stream<Arguments> applicationConfigs() {

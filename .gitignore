@@ -4,20 +4,29 @@ build/
 target/
 *.class
 gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
 # IDE
 *.iml
 *.ipr
-*.iws
+*.iwr
 .idea/
 .vscode/
 .eclipse/
 .project
 .classpath
 .settings/
+*.code-workspace
+.out
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Logs & Profiling
@@ -26,14 +35,26 @@ logs/
 jfr-recordings/
 *.jfr
 *.hprof
+*.prof
+*.trace
+traces/
 
 # JVM & Database
 *.db
 *.sqlite
+*.h2.db
 h2/
+*.pid
 
-# Local configuration
+# Docker
+*.pid
+*.sock
+
+# Local configuration & secrets
 *.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
 .claude/settings.local.json
 .qwen/settings.json
 
@@ -41,8 +62,37 @@ h2/
 *.tmp
 *.temp
 *.swp
+*.swo
 *~
 .#*
+.DS_Store
+
+# Coverage reports
+coverage/
+*.exec
+jacoco/
+
+# Spring Cloud Contract stubs
+stubs/
+stub-runner/
+
+# Node modules (if any frontend tooling added)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Git worktrees
 .worktrees/
+
+# Docker Compose
+.dockerenv
+
+# Generated files
+**/generated/
+**/generated-src/
+
+# Test outputs
+test-results/
+**/test-results/
+**/build/reports/

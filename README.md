@@ -42,7 +42,7 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 | HTTP Client | Spring RestClient |
 | Database | H2 + Spring Data JDBC + Flyway |
 | Backend | Grafana OTEL LGTM |
-| Testing | JUnit 5, Pact (Contract Testing), ArchUnit |
+| Testing | JUnit 5, Spring Cloud Contract (Contract Testing), ArchUnit |
 | CI | GitHub Actions |
 
 > **Note**: 本项目采用 Spring Boot 官方推荐的 **Micrometer Tracing** 方案，而非 OpenTelemetry Java Agent。详见 [Spring 官方博客](https://spring.io/blog/2025/11/18/opentelemetry-with-spring-boot)。
@@ -158,7 +158,7 @@ curl -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" http://localhost:8080/api/1
 | Formatting | Spotless | Google Java Format 1.28.0 |
 | Static Analysis | Error Prone | 编译时静态检查 |
 | Coverage | JaCoCo | 60% 最低覆盖率门禁 |
-| Contract Tests | Pact | 消费者驱动契约测试 |
+| Contract Tests | Spring Cloud Contract | 消费者驱动契约测试 |
 | Architecture Tests | ArchUnit | 模块依赖规则验证 |
 | End-to-End Smoke | JUnit + Stubs | 真实 HTTP 链路测试 |
 | **OTel Verification** | **verify-otel.sh** | **自动验证遥测数据收集** |
@@ -274,7 +274,7 @@ make run-greeting    # 仅启动 greeting-service
 
 ```bash
 make test-e2e        # 运行端到端测试
-make test-contract   # 运行 Pact 契约测试
+make test-contract   # 运行 Spring Cloud Contract 契约测试
 make test-arch       # 运行架构测试
 ```
 
@@ -323,7 +323,7 @@ springboot3.5-otel/
 │   ├── dashboards/      # Grafana 仪表板定义
 │   └── provisioning/    # Grafana 配置
 ├── scripts/
-│   ├── publish-pacts.sh # Pact 契约发布脚本
+│   ├── publish-stubs.sh # Spring Cloud Contract stub 发布脚本
 │   ├── verify-otel.sh   # OTel 数据收集验证脚本
 │   ├── jfr-profiling.sh # JFR 录制管理工具
 │   └── run-with-jfr.sh  # 本地开发 JFR 启动脚本
@@ -357,8 +357,7 @@ GitHub Actions 工作流 (`.github/workflows/ci.yml`)：
 - **Gradle 缓存**: 使用 `gradle/actions/setup-gradle@v5` 自动缓存
 - **质量检查**: Spotless 格式化、Error Prone 静态分析
 - **测试**: 单元测试、契约测试、架构测试
-- **产物**: Pact 契约文件、JaCoCo 报告、测试报告
-- **可选**: 发布 Pact 到 Pact Broker
+- **产物**: Spring Cloud Contract stubs、JaCoCo 报告、测试报告
 
 ## License
 

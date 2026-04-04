@@ -80,13 +80,6 @@ subprojects {
 
         tasks.withType(Test::class.java).configureEach {
             useJUnitPlatform()
-            systemProperty(
-                "pact.rootDir",
-                rootProject.layout.buildDirectory
-                    .dir("pacts")
-                    .get()
-                    .asFile.absolutePath,
-            )
         }
 
         extensions.configure<JacocoPluginExtension> {
@@ -98,17 +91,16 @@ subprojects {
         extensions.configure<DependencyManagementExtension> {
             imports {
                 mavenBom("org.testcontainers:testcontainers-bom:1.21.4")
+                mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
+                mavenBom("io.opentelemetry:opentelemetry-bom:1.49.0")
+                mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha:2.13.0-alpha")
             }
         }
     }
 }
 
 gradle.projectsEvaluated {
-    project(":user-service").tasks.named("test") {
-        dependsOn(project(":hello-service").tasks.named("test"))
-    }
-
-    project(":greeting-service").tasks.named("test") {
-        dependsOn(project(":hello-service").tasks.named("test"))
-    }
+    // No special task dependencies needed for Spring Cloud Contract
+    // Providers build stubs as part of their test task
+    // Consumer uses stubs from local Maven repository
 }

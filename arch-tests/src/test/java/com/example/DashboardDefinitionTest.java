@@ -74,7 +74,8 @@ class DashboardDefinitionTest {
                     .filter(expr -> !expr.isBlank())
                     .forEach(expressions::add));
 
-    assertThat(expressions).anyMatch(expr -> expr.contains("http_server_requests_milliseconds_sum"));
+    assertThat(expressions)
+        .anyMatch(expr -> expr.contains("http_server_requests_milliseconds_sum"));
     assertThat(expressions).noneMatch(expr -> expr.contains("histogram_quantile"));
   }
 

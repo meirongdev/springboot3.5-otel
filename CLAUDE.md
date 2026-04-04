@@ -30,7 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Spotless (Google Java Format 1.28.0)
 - Error Prone static analysis
 - JaCoCo 60% minimum coverage
-- Pact contract tests (consumer + provider)
+- Spring Cloud Contract contract tests (producer stubs + consumer verification)
 - ArchUnit architecture rules (including Java 25 record enforcement, no manual OTel SDK construction)
 
 ## Architecture
@@ -75,8 +75,8 @@ Spring Boot 3.5 auto-configures most OTel components. The required dependencies:
 |------|-------|----------|
 | Unit | JUnit 5, Mockito | `*Test.java` |
 | Integration | `@SpringBootTest`, H2 | `*IntegrationTest.java` |
-| Contract (consumer) | Pact JVM 4.6.17 | `*PactConsumerTest.java` in hello-service |
-| Contract (provider) | Pact JVM | `*PactProviderTest.java` in user-service, greeting-service |
+| Contract (producer) | Spring Cloud Contract | `src/test/resources/contracts/*.groovy` in greeting-service, user-service |
+| Contract (consumer) | Spring Cloud Contract StubRunner | `*ContractTest.java` in hello-service |
 | Architecture | ArchUnit 1.4.1 | `arch-tests/` module |
 | End-to-end | Embedded `HttpServer` stubs | `HelloControllerEndToEndTest` |
 
@@ -84,4 +84,4 @@ ArchUnit enforces: `shared` has no dependencies on service modules; controllers 
 
 ## CI Pipeline
 
-`.github/workflows/ci.yml`: spotlessCheck → `clean build` (runs all tests + coverage verification) → upload pact files + coverage reports. Java 25 Temurin. Gradle configuration cache enabled.
+`.github/workflows/ci.yml`: spotlessCheck → `clean build` (runs all tests + coverage verification) → publish stubs to local Maven. Java 25 Temurin. Gradle configuration cache enabled.

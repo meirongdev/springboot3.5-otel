@@ -31,7 +31,7 @@ dependencies {
     api("io.micrometer:micrometer-registry-otlp")
 
     // OpenTelemetry Logback Appender (from instrumentation project)
-    api("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.26.1-alpha")
+    api("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.13.0-alpha")
 
     // Spring Boot autoconfigure for OTel
     implementation("org.springframework.boot:spring-boot-starter-aop")

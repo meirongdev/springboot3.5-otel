@@ -91,7 +91,7 @@ All services export telemetry via OTLP (gRPC :4317 / HTTP :4318).
 | Spotless | Code formatting | 8.4.0 (google-java-format 1.28.0) |
 | Error Prone | Static analysis | 2.48.0 |
 | JaCoCo | Coverage | 0.8.15 (60% minimum) |
-| Pact | Contract testing | 4.6.x |
+| Spring Cloud Contract | Contract testing | 2024.0.x |
 | ArchUnit | Architecture tests | 1.4.1 |
 | Testcontainers | Integration tests | 2.0.4 |
 
@@ -219,7 +219,7 @@ build/
 
 ```
          ┌──────────┐
-         │ Contract │  ← Pact (consumer-driven)
+         │ Contract │  ← Spring Cloud Contract (producer-driven stubs)
          ├──────────┤
          │Integration│  ← Testcontainers, H2
          ├──────────┤
@@ -233,7 +233,7 @@ build/
 |------|-------|----------|
 | Unit Tests | JUnit 5 + Mockito | All service modules |
 | Integration Tests | Testcontainers 2.0, `@SpringBootTest` | All service modules |
-| Contract Tests | Pact JVM | hello-service, user-service, greeting-service |
+| Contract Tests | Spring Cloud Contract | greeting-service, user-service (providers), hello-service (consumer) |
 | Architecture Tests | ArchUnit | arch-tests module |
 | End-to-End Tests | Embedded HTTP + stubs | hello-service |
 
@@ -244,7 +244,7 @@ build/
 | Formatting | Spotless | Google Java Format |
 | Static Analysis | Error Prone | Enabled |
 | Coverage | JaCoCo | 60% minimum |
-| Contracts | Pact | Consumer + Provider verification |
+| Contracts | Spring Cloud Contract | Consumer stub verification + Provider stub generation |
 | Architecture | ArchUnit | Module rules enforced |
 
 ---

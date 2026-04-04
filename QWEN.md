@@ -54,7 +54,7 @@ springboot3.5-otel/
 │   ├── dashboards/      # Grafana dashboard definitions
 │   └── provisioning/    # Grafana provisioning config
 ├── scripts/
-│   └── publish-pacts.sh # Pact contract publishing script
+│   └── publish-stubs.sh # Spring Cloud Contract stub publishing script
 ├── README.md            # User-facing documentation
 ├── QWEN.md              # This file - development context
 └── spec.md              # Original specification
@@ -73,7 +73,7 @@ springboot3.5-otel/
 | HTTP Client | Spring RestClient |
 | Database | H2 + Spring Data JDBC + Flyway |
 | Backend | Grafana OTEL LGTM |
-| Testing | JUnit 5, Pact (Contract Testing), ArchUnit, Testcontainers |
+| Testing | JUnit 5, Spring Cloud Contract (Contract Testing), ArchUnit, Testcontainers |
 | CI | GitHub Actions |
 
 ## Building and Running
@@ -168,7 +168,7 @@ management:
 ### Testing Practices
 
 - **Unit Tests**: JUnit 5
-- **Contract Tests**: Pact for consumer-driven contracts
+- **Contract Tests**: Spring Cloud Contract for consumer-driven contracts
 - **Architecture Tests**: ArchUnit for module dependency rules
 - **End-to-End**: Embedded HTTP smoke tests with downstream stubs
 - **Coverage Gate**: JaCoCo with 60% minimum coverage
@@ -195,8 +195,8 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 - Java 25 with Temurin distribution
 - Spotless formatting check
 - Full build and test
-- Artifact uploads: Pact files, JaCoCo reports, test results
-- Optional Pact Broker publishing
+- Artifact uploads: Spring Cloud Contract stubs, JaCoCo reports, test results
+- Stub publishing via Maven repository
 
 ## Spring Boot 3.5 Adaptation Notes
 
@@ -273,7 +273,7 @@ Architecture tests using ArchUnit:
 | Formatting | Spotless | Google Java Format |
 | Static Analysis | Error Prone | Enabled |
 | Coverage | JaCoCo | 60% minimum |
-| Contracts | Pact | Consumer + Provider verification |
+| Contracts | Spring Cloud Contract | Consumer + Provider verification |
 | Architecture | ArchUnit | Module rules enforced |
 
 ## Implementation Status
