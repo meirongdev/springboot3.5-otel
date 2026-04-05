@@ -16,6 +16,8 @@ class HelloServiceTest {
 
   @Mock private GreetingServiceClient greetingServiceClient;
 
+  @Mock private KafkaEventPublisher kafkaEventPublisher;
+
   @InjectMocks private HelloService helloService;
 
   @Test

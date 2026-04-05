@@ -29,8 +29,7 @@ class KafkaEventPublisherTest {
   @Test
   void shouldPublishEventToKafka() throws Exception {
     // given
-    var event =
-        new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
+    var event = new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
     var recordMetadata = mock(RecordMetadata.class);
     var producerRecord = new ProducerRecord<String, Object>("greeting-events", "1", event);
     var sendResult = new SendResult<String, Object>(producerRecord, recordMetadata);
@@ -50,8 +49,7 @@ class KafkaEventPublisherTest {
   @Test
   void shouldHandlePublishFailureGracefully() throws Exception {
     // given
-    var event =
-        new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
+    var event = new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
     when(kafkaTemplate.send(eq("greeting-events"), eq("1"), any()))
         .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Kafka down")));
 

@@ -30,8 +30,7 @@ class GreetingEventConsumerTest {
   @Test
   void shouldLogReceivedEvent() {
     // given
-    var event =
-        new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
+    var event = new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
 
     // when
     consumer.handleGreetingRequested(event);

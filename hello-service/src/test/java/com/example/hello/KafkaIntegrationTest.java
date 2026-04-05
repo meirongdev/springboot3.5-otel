@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -44,8 +44,7 @@ class KafkaIntegrationTest {
   @Test
   void shouldPublishAndConsumeEvent() {
     // given
-    var event =
-        new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
+    var event = new GreetingRequestedEvent("trace-123", 1L, "en", "Hello", Instant.now());
 
     String brokerAddress = embeddedKafka.getBrokersAsString();
 

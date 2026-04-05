@@ -24,7 +24,9 @@ public class KafkaEventPublisher {
   @Observed(name = "kafka.event.publish", contextualName = "kafka.publish")
   public void publishGreetingRequested(String topic, GreetingRequestedEvent event) {
     try {
-      kafkaTemplate.send(topic, event.userId().toString(), event).get(5, java.util.concurrent.TimeUnit.SECONDS);
+      kafkaTemplate
+          .send(topic, event.userId().toString(), event)
+          .get(5, java.util.concurrent.TimeUnit.SECONDS);
       log.debug("Published greeting event for userId={}", event.userId());
     } catch (Exception e) {
       log.warn("Failed to publish greeting event: {}", e.getMessage());

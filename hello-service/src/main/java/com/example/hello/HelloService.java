@@ -30,7 +30,8 @@ public class HelloService {
     // Publish event to Kafka for async processing (fire-and-forget via @Async)
     kafkaEventPublisher.publishGreetingRequested(
         "greeting-events",
-        new GreetingRequestedEvent(null, userId, greeting.language(), greeting.message(), Instant.now()));
+        new GreetingRequestedEvent(
+            null, userId, greeting.language(), greeting.message(), Instant.now()));
 
     return new HelloResponse(user.id(), user.name(), greeting.message(), greeting.language());
   }
