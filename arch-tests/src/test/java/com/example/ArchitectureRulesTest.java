@@ -65,4 +65,14 @@ class ArchitectureRulesTest {
           .because(
               "Spring Boot 3.5 auto-configures the OTel SDK; manual construction bypasses"
                   + " auto-configuration and creates duplicate/conflicting providers");
+
+  // Kafka events must be records for immutability
+  @ArchTest
+  static final ArchRule kafkaEventsMustBeRecords =
+      classes()
+          .that()
+          .resideInAPackage("..kafka.event..")
+          .should()
+          .beRecords()
+          .because("Kafka event types should be immutable records");
 }
