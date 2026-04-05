@@ -9,14 +9,21 @@
 ```
                     ┌──────────────────┐
   curl/browser ───► │  hello-service   │ :8080
-                    └────────┬─────────┘
-                             │
-               ┌─────────────┼─────────────┐
-               │                           │
-      ┌────────▼─────────┐       ┌────────▼─────────┐
-      │  user-service    │       │ greeting-service  │
-      │     :8081        │       │     :8082         │
-      └──────────────────┘       └───────────────────┘
+                    │  (Orchestrator)  │
+                    └────┬─────┬───────┘
+                         │     │
+              HTTP       │     │  Kafka (async events)
+                         │     ▼
+      ┌─────────────┐    │  ┌──────────────┐
+      │ user-service│◄───┘  │ Kafka Broker │
+      │   :8081     │       │  (port 9092) │
+      └─────────────┘       └──────┬───────┘
+                                   │
+      ┌──────────────────┐         ▼
+      │greeting-service  │  ┌──────────────┐
+      │   :8082          │  │ user-service │
+      └──────────────────┘  │  (Consumer)  │
+                            └──────────────┘
 
   All services ──OTLP──► otel-collector ──OTLP──► grafana-otel-lgtm (:3000)
 ```
@@ -46,6 +53,22 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 | CI | GitHub Actions |
 
 > **Note**: 本项目采用 Spring Boot 官方推荐的 **Micrometer Tracing** 方案，而非 OpenTelemetry Java Agent。详见 [Spring 官方博客](https://spring.io/blog/2025/11/18/opentelemetry-with-spring-boot)。
+
+### Kafka Integration
+
+This demo includes Kafka for asynchronous event streaming alongside synchronous HTTP communication:
+
+- **Producer**: hello-service publishes `GreetingRequestedEvent` events to the `greeting-events` topic
+- **Consumer**: user-service consumes events for observability and analytics
+- **OTel Tracing**: Kafka producer/consumer spans appear in the same trace as HTTP spans, demonstrating trace context propagation via Kafka headers
+
+**Kafka in Docker Compose:**
+```bash
+docker compose up -d kafka    # Start Kafka broker
+```
+
+**Local development (without Docker):**
+Services connect to `localhost:9092` by default. Start Kafka separately or use Docker Compose.
 
 ### Service OTel Configuration Pattern
 
