@@ -39,6 +39,7 @@ public class RetryExchangeInterceptor implements ClientHttpRequestInterceptor {
             int statusCode = response.getStatusCode().value();
 
             if (RETRYABLE_STATUS_CODES.contains(statusCode)) {
+              response.close(); // release connection before retry
               throw new RetryableHttpException(
                   String.format(
                       "HTTP %d from %s %s (attempt %d)",

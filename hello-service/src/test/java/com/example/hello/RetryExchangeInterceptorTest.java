@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -96,5 +97,22 @@ class RetryExchangeInterceptorTest {
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("HTTP 500")
         .hasMessageContaining("attempt 3");
+  }
+
+  @Test
+  void shouldCloseResponseBeforeRetrying() throws IOException {
+    // given
+    var request = new MockClientHttpRequest(HttpMethod.GET, "/test");
+    var failResponse = mock(ClientHttpResponse.class);
+    when(failResponse.getStatusCode()).thenReturn(HttpStatus.SERVICE_UNAVAILABLE);
+    var successResponse = mock(ClientHttpResponse.class);
+    when(successResponse.getStatusCode()).thenReturn(HttpStatus.OK);
+    when(execution.execute(any(), any())).thenReturn(failResponse).thenReturn(successResponse);
+
+    // when
+    interceptor.intercept(request, new byte[0], execution);
+
+    // then - response was closed before retry
+    verify(failResponse).close();
   }
 }
