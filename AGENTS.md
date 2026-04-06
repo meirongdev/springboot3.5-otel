@@ -40,9 +40,17 @@ scripts/        - verify-otel.sh, publish-stubs.sh utilities
 - `make build` / `make test` / `make clean` / `make coverage`
 - `make fmt` - Apply spotless formatting
 - `make check` - Validate formatting + static analysis
+- `make validate-fast` - Quick validation: format + compile (~15s)
+- `make validate` - Full validation: format + compile + all tests (~2-3 min)
 - `make up` / `make down` / `make restart` - Docker Compose backend
 - `make run-all` - Start all services in background
+- `make hooks-install` - Install pre-commit git hook
+- `make hooks-remove` - Remove pre-commit git hook
 - `make verify-otel` - Run OTel data collection verification
+
+**Git Hooks:**
+- `make hooks-install` installs `.githooks/pre-commit` → `.git/hooks/pre-commit`
+- Pre-commit runs: spotlessCheck + compile + all tests + docker config validation
 
 ---
 
@@ -112,6 +120,12 @@ make verify-otel-verbose
 
 # Full quality check
 make dev-full
+
+# Quick validation (format + compile only)
+make validate-fast
+
+# Full validation (all tests included)
+make validate
 ```
 
 **Service ports:** hello:8080, user:8081, greeting:8082

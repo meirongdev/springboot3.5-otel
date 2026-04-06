@@ -60,13 +60,19 @@ services:
       - SPRING_APPLICATION_NAME=hello-service
     volumes:
       - ./logs/hello-service:/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       otel-collector:
         condition: service_started
       user-service:
-        condition: service_started
+        condition: service_healthy
       greeting-service:
-        condition: service_started
+        condition: service_healthy
       kafka:
         condition: service_healthy
 
@@ -94,6 +100,12 @@ services:
       - SPRING_APPLICATION_NAME=user-service
     volumes:
       - ./logs/user-service:/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       otel-collector:
         condition: service_started
@@ -120,6 +132,12 @@ services:
       - SPRING_APPLICATION_NAME=greeting-service
     volumes:
       - ./logs/greeting-service:/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       otel-collector:
         condition: service_started

@@ -28,8 +28,12 @@ help:
 	@echo "  make run-greeting   - Start greeting-service only"
 	@echo ""
 	@echo "  make test-e2e       - Run end-to-end tests"
-	@echo "  make test-contract  - Run Pact contract tests"
+	@echo "  make test-contract  - Run Spring Cloud Contract tests"
 	@echo "  make test-arch      - Run architecture tests"
+	@echo "  make validate       - Full validation: format + compile + all tests"
+	@echo ""
+	@echo "  make hooks-install  - Install pre-commit git hook"
+	@echo "  make hooks-remove   - Remove pre-commit git hook"
 	@echo ""
 	@echo "  make verify-otel    - Rebuild current Compose stack, wait, and verify OTel"
 	@echo "  make verify-otel-verbose - Rebuild current Compose stack, wait, and verify OTel with detailed output"
@@ -113,7 +117,9 @@ test-e2e:
 	./gradlew :hello-service:test --tests "*.HelloControllerEndToEndTest"
 
 test-contract:
-	./gradlew test --tests "*Pact*"
+	./gradlew :greeting-service:contractTest \
+		:user-service:contractTest \
+		:hello-service:test --tests "*Contract*"
 
 test-arch:
 	./gradlew :arch-tests:test
@@ -125,6 +131,9 @@ docs:
 
 # Quick test command for development
 dev-test: clean fmt check test coverage
+
+# Full validation pipeline (alias)
+dev-validate: validate
 
 # OpenTelemetry verification
 verify-otel-prepare:
@@ -185,3 +194,57 @@ jfr-flame:
 jfr-help:
 	@chmod +x scripts/jfr-profiling.sh
 	@./scripts/jfr-profiling.sh help
+
+# =============================================================================
+# Full Validation Pipeline
+# =============================================================================
+
+# Quick validation: format + compile only (fast feedback, ~15s)
+validate-fast: fmt
+	@echo "── Compiling ──"
+	@./gradlew compileJava compileTestJava
+	@echo ""
+	@echo "✓ Quick validation passed (format + compile)"
+
+# Full validation: format + compile + all tests (~2-3 min)
+validate: fmt
+	@echo "── Compiling ──"
+	@./gradlew compileJava compileTestJava
+	@echo ""
+	@echo "── Running Unit Tests ──"
+	@./gradlew test
+	@echo ""
+	@echo "── Running Contract Tests (Provider) ──"
+	@./gradlew :greeting-service:contractTest :user-service:contractTest
+	@echo ""
+	@echo "── Running Contract Tests (Consumer) ──"
+	@./gradlew :hello-service:test --tests "*Contract*"
+	@echo ""
+	@echo "── Running Architecture Tests ──"
+	@./gradlew :arch-tests:test
+	@echo ""
+	@echo "✓ All validations passed"
+
+# =============================================================================
+# Git Hooks
+# =============================================================================
+
+hooks-install:
+	@chmod +x .githooks/pre-commit
+	@if [ -d .git ]; then \
+		ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit; \
+		echo "✓ Pre-commit hook installed: .git/hooks/pre-commit → .githooks/pre-commit"; \
+	else \
+		echo "✗ No .git directory found"; \
+	fi
+
+hooks-remove:
+	@if [ -L .git/hooks/pre-commit ]; then \
+		rm .git/hooks/pre-commit; \
+		echo "✓ Pre-commit hook removed"; \
+	elif [ -f .git/hooks/pre-commit ]; then \
+		rm .git/hooks/pre-commit; \
+		echo "✓ Pre-commit hook removed"; \
+	else \
+		echo "No pre-commit hook found"; \
+	fi

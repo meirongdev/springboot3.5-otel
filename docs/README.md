@@ -23,6 +23,8 @@
 
 ### For Development
 - **Build & Test:** `[ARCHITECTURE.md](ARCHITECTURE.md)#6-cicd`
+- **Validation Pipeline:** `[../README.md](../README.md)#验证流水线`
+- **Git Hooks:** `[../README.md](../README.md)#git-hooks`
 - **Docker Issues:** `[docker-fixes.md](docker-fixes.md)`
 - **Architecture Rules:** `[ARCHITECTURE.md](ARCHITECTURE.md)#5-test-harness`
 

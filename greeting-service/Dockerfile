@@ -12,6 +12,9 @@ RUN ./gradlew :greeting-service:bootJar --no-daemon -x test
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Create non-root user
 RUN addgroup -S app && adduser -S app -G app
 

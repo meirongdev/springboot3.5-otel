@@ -178,13 +178,26 @@ curl -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" http://localhost:8080/api/1
 
 | Gate | Tool | Description |
 |------|------|-------------|
-| Formatting | Spotless | Google Java Format 1.28.0 |
+| Formatting | Spotless | Google Java Format 1.34.0 |
 | Static Analysis | Error Prone | 编译时静态检查 |
 | Coverage | JaCoCo | 60% 最低覆盖率门禁 |
 | Contract Tests | Spring Cloud Contract | 消费者驱动契约测试 |
 | Architecture Tests | ArchUnit | 模块依赖规则验证 |
 | End-to-End Smoke | JUnit + Stubs | 真实 HTTP 链路测试 |
 | **OTel Verification** | **verify-otel.sh** | **自动验证遥测数据收集** |
+
+### 自动化验证流水线
+
+```bash
+# 快速检查（格式 + 编译），推荐日常使用
+make validate-fast
+
+# 完整验证（包含全部测试），提交前或 PR 前使用
+make validate
+
+# 安装 git pre-commit hook，每次提交自动验证
+make hooks-install
+```
 
 ### OpenTelemetry Verification Harness
 
@@ -274,6 +287,37 @@ make dev-full        # 完整流程 + OTel 验证
 make verify-otel     # 验证 OpenTelemetry 数据收集
 ```
 
+### 验证流水线
+
+```bash
+make validate-fast   # 快速验证：格式化 + 编译（~15s）
+make validate        # 完整验证：格式化 + 编译 + 全部测试（~2-3 min）
+```
+
+**完整验证流程** `make validate` 包括：
+1. ✅ Spotless 格式化检查
+2. ✅ 所有源代码编译
+3. ✅ 单元测试（全部模块）
+4. ✅ 契约测试 - 提供者端（`contractTest`）
+5. ✅ 契约测试 - 消费者端（stub 测试）
+6. ✅ 架构测试（ArchUnit）
+
+### Git Hooks
+
+```bash
+make hooks-install   # 安装 pre-commit hook（每次 commit 自动验证）
+make hooks-remove    # 移除 pre-commit hook
+```
+
+**Pre-commit hook 功能**：在每次 `git commit` 前自动运行：
+1. 格式化检查（Spotless）
+2. 编译验证（compileJava + compileTestJava）
+3. 全部测试（unit + contract + arch）
+4. Docker Compose 配置验证
+
+> 💡 **建议工作流**：首次运行 `make hooks-install` 安装 hook 后，
+> 日常开发用 `make validate-fast` 快速检查，提交时 hook 自动运行完整验证。
+
 **Docker Compose:**
 
 ```bash
@@ -331,6 +375,8 @@ springboot3.5-otel/
 ├── compose.yaml         # Grafana OTEL LGTM Docker Compose
 ├── Makefile             # 常用命令快捷方式
 ├── .editorconfig        # 统一 IDE 格式化配置
+├── .githooks/           # Git hooks 模板（pre-commit 验证）
+├── .git-blame-ignore-revs  # Git blame 忽略格式化提交
 ├── jdk-java-options.env # JFR 生产环境配置模板
 ├── otel-profiling.env   # OpenTelemetry Agent 配置模板
 ├── docs/

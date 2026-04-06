@@ -15,13 +15,19 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 @AutoConfigureStubRunner(
     ids = {"com.example:greeting-service:+:stubs", "com.example:user-service:+:stubs"},
     stubsMode = StubRunnerProperties.StubsMode.CLASSPATH)
 class HelloControllerEndToEndTest {
+
+  @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
 
   @StubRunnerPort("user-service")
   int userServicePort;

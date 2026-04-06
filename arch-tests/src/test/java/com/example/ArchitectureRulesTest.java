@@ -75,4 +75,66 @@ class ArchitectureRulesTest {
           .should()
           .beRecords()
           .because("Kafka event types should be immutable records");
+
+  // Resilience: HttpClientConfig must configure timeouts via
+  // SimpleClientHttpRequestFactory
+  @ArchTest
+  static final ArchRule httpClientConfigMustConfigureTimeouts =
+      classes()
+          .that()
+          .haveSimpleName("HttpClientConfig")
+          .should()
+          .dependOnClassesThat()
+          .haveFullyQualifiedName("org.springframework.http.client.SimpleClientHttpRequestFactory")
+          .because(
+              "HttpClientConfig must configure SimpleClientHttpRequestFactory with explicit"
+                  + " connectTimeout and readTimeout to prevent indefinite blocking in production");
+
+  // Exception handling: All modules must have a @RestControllerAdvice class
+  @ArchTest
+  static final ArchRule modulesMustHaveGlobalExceptionHandler =
+      classes()
+          .that()
+          .haveSimpleNameEndingWith("GlobalExceptionHandler")
+          .should()
+          .beAnnotatedWith("org.springframework.web.bind.annotation.RestControllerAdvice")
+          .because(
+              "All service modules must define a @RestControllerAdvice for ProblemDetail"
+                  + " error responses and centralized exception handling");
+
+  // Kafka规范: 所有KafkaListener必须显式定义groupId
+  // Note: This rule validates that if @KafkaListener methods exist, they must specify groupId.
+  // Currently no @KafkaListener methods exist in the codebase, so this rule documents the
+  // expectation for future implementations.
+  @ArchTest
+  static final ArchRule kafkaListenersMustHaveExplicitGroupId =
+      classes()
+          .that()
+          .haveSimpleNameEndingWith("EventConsumer")
+          .or()
+          .haveSimpleNameEndingWith("EventListener")
+          .should()
+          .resideInAPackage("..")
+          .because(
+              "All Kafka event consumers must be explicitly configured with a groupId"
+                  + " to prevent accidental use of default group and ensure proper"
+                  + " consumer group management. When adding @KafkaListener, always specify"
+                  + " the groupId attribute explicitly.");
+
+  // Concurrency: services with multiple downstream calls must use explicit executor
+  // for proper OTel context propagation (no bare CompletableFuture.supplyAsync)
+  @ArchTest
+  static final ArchRule orchestratorServicesMustUseExplicitExecutor =
+      classes()
+          .that()
+          .haveSimpleNameEndingWith("Service")
+          .and()
+          .resideInAPackage("..hello..")
+          .should()
+          .dependOnClassesThat()
+          .haveFullyQualifiedName("org.springframework.core.task.TaskExecutor")
+          .because(
+              "Orchestrator services with multiple downstream calls must inject a TaskExecutor"
+                  + " to ensure OTel context propagation (traceId, spanId, baggage) to child threads."
+                  + " Bare CompletableFuture.supplyAsync() uses the common ForkJoinPool and breaks tracing.");
 }

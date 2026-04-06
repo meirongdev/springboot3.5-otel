@@ -19,6 +19,10 @@ management:
   tracing:
     sampling:
       probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
+    baggage:
+      remote-fields: user-type, request-source, tenant-id
+      correlation:
+        fields: user-type, request-source, tenant-id
   opentelemetry:
     resource-attributes:
       service.name: ${spring.application.name}

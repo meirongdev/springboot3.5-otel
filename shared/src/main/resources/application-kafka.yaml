@@ -7,10 +7,12 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      observation-enabled: true
     consumer:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      observation-enabled: true
       properties:
         spring.json.trusted.packages: "com.example.*"
         spring.json.type.mapping: "greetingRequested:com.example.shared.kafka.event.GreetingRequestedEvent"

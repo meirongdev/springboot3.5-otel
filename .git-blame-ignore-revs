@@ -1,0 +1,2 @@
+# Ignore formatting-only commits in git blame
+# Usage: git blame --ignore-revs-file .git-blame-ignore-revs <file>

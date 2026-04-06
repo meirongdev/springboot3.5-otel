@@ -1,6 +1,5 @@
 package com.example.user;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,10 +33,15 @@ class UserControllerTest {
   }
 
   @Test
-  void shouldPropagateExceptionWhenUserNotFound() throws Exception {
-    when(userService.findById(99L)).thenThrow(new IllegalArgumentException("User not found: 99"));
+  void shouldReturn404WhenUserNotFound() throws Exception {
+    when(userService.findById(99L)).thenThrow(new UserNotFoundException(99L));
 
-    assertThatThrownBy(() -> mockMvc.perform(get("/api/users/99")))
-        .hasCauseInstanceOf(IllegalArgumentException.class);
+    mockMvc
+        .perform(get("/api/users/99"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.title").value("User Not Found"))
+        .andExpect(jsonPath("$.detail").value("User not found with id: 99"))
+        .andExpect(jsonPath("$.userId").value(99));
   }
 }

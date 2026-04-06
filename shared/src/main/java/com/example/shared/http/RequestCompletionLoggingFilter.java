@@ -23,6 +23,15 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
+
+    // Skip logging for health check endpoints to avoid polluting logs and RED metrics
+    // with Docker Compose health check requests
+    String requestUri = request.getRequestURI();
+    if (requestUri.startsWith("/actuator/")) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+
     long startedAt = System.nanoTime();
 
     try {
@@ -32,7 +41,7 @@ public class RequestCompletionLoggingFilter extends OncePerRequestFilter {
       log.info(
           "request completed method={} path={} status={} durationMs={}",
           request.getMethod(),
-          request.getRequestURI(),
+          requestUri,
           response.getStatus(),
           durationMs);
     }

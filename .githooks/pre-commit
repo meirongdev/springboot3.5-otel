@@ -1,0 +1,93 @@
+#!/bin/bash
+# pre-commit hook: comprehensive validation before committing
+# Install: cp .githooks/pre-commit .git/hooks/pre-commit
+# Or: ln -s ../../.githooks/pre-commit .git/hooks/pre-commit
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log()    { echo -e "${GREEN}✓${NC} $1"; }
+warn()   { echo -e "${YELLOW}⚠${NC} $1"; }
+fail()   { echo -e "${RED}✗${NC} $1"; ERRORS=$((ERRORS + 1)); }
+section() { echo -e "\n${CYAN}── $1 ──${NC}"; }
+
+ERRORS=0
+
+section "Pre-commit Validation"
+
+# ── 1. Formatting ────────────────────────────────────────────────────────────
+section "[1/4] Code Formatting"
+if ./gradlew spotlessCheck --quiet 2>/dev/null; then
+    log "Spotless: all code properly formatted"
+else
+    fail "Spotless: formatting violations found"
+    warn "  Fix with: ./gradlew spotlessApply"
+fi
+
+# ── 2. Compilation + Static Analysis ────────────────────────────────────────
+section "[2/4] Compilation & Static Analysis"
+if ./gradlew compileJava compileTestJava --quiet 2>/dev/null; then
+    log "Compilation: all sources compile successfully"
+else
+    fail "Compilation: build errors detected"
+    exit 1
+fi
+
+# ── 3. Unit + Contract + Arch Tests ─────────────────────────────────────────
+section "[3/4] Test Suite"
+
+# Unit tests (all modules)
+if ./gradlew test --quiet 2>/dev/null; then
+    log "Unit tests: all passed"
+else
+    fail "Unit tests: failures detected"
+fi
+
+# Contract tests (provider verification)
+if ./gradlew :greeting-service:contractTest :user-service:contractTest --quiet 2>/dev/null; then
+    log "Contract tests (provider): all passed"
+else
+    fail "Contract tests (provider): failures detected"
+fi
+
+# Consumer-side stub tests
+if ./gradlew :hello-service:test --tests "*Contract*" --quiet 2>/dev/null; then
+    log "Contract tests (consumer): all passed"
+else
+    fail "Contract tests (consumer): failures detected"
+fi
+
+# Architecture tests
+if ./gradlew :arch-tests:test --quiet 2>/dev/null; then
+    log "Architecture tests: all passed"
+else
+    fail "Architecture tests: failures detected"
+fi
+
+# ── 4. Docker Compose Validation ────────────────────────────────────────────
+section "[4/4] Docker Compose"
+if docker compose config --quiet 2>/dev/null; then
+    log "Docker Compose: compose.yaml is valid"
+else
+    warn "Docker Compose: skipping validation (Docker not available)"
+fi
+
+# ── Summary ─────────────────────────────────────────────────────────────────
+echo ""
+if [ $ERRORS -eq 0 ]; then
+    echo -e "${GREEN}All checks passed! Ready to commit.${NC}"
+    exit 0
+else
+    echo -e "${RED}$ERRORS check(s) failed. Commit aborted.${NC}"
+    echo ""
+    echo "Common fixes:"
+    echo "  Formatting:  ./gradlew spotlessApply"
+    echo "  Full build:  ./gradlew build"
+    echo "  All tests:   make test && make test-contract && make test-arch"
+    exit 1
+fi
