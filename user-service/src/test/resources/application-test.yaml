@@ -1,7 +1,12 @@
 # Test profile: Disable Kafka auto-start to avoid connection attempts to localhost:9092
 # during unit/integration tests that don't require a real Kafka broker.
+# Enable H2 console for manual debugging during tests.
 
 spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  h2:
+    console:
+      enabled: true
+      path: /h2-console

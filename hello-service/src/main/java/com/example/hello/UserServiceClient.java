@@ -15,11 +15,16 @@ public class UserServiceClient {
   }
 
   public UserDTO getUser(Long userId) {
-    return restClient
-        .get()
-        .uri(URI.create(userServiceUrl + "/api/users/" + userId))
-        .retrieve()
-        .body(UserDTO.class);
+    UserDTO user =
+        restClient
+            .get()
+            .uri(URI.create(userServiceUrl + "/api/users/" + userId))
+            .retrieve()
+            .body(UserDTO.class);
+    if (user == null) {
+      throw new IllegalStateException("User service returned empty body for userId=" + userId);
+    }
+    return user;
   }
 
   public record UserDTO(Long id, String name, String email) {}

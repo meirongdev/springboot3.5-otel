@@ -3,14 +3,29 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
   <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
+  <!-- PII redaction filter (runs before any appenders) -->
+  <turboFilter class="com.example.shared.otel.PiiRedactionFilter"/>
+
   <appender name="OpenTelemetry"
             class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
     <captureExperimentalAttributes>true</captureExperimentalAttributes>
     <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+    <captureCodeAttributes>true</captureCodeAttributes>
+    <captureMarkerAttribute>true</captureMarkerAttribute>
+    <captureLoggerContext>true</captureLoggerContext>
+  </appender>
+
+  <!-- Async wrapper for non-blocking log writes in production -->
+  <appender name="AsyncOpenTelemetry" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="OpenTelemetry"/>
+    <queueSize>8192</queueSize>
+    <discardingThreshold>0</discardingThreshold>
+    <maxFlushTime>1000</maxFlushTime>
+    <includeCallerData>false</includeCallerData>
   </appender>
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="OpenTelemetry"/>
+    <appender-ref ref="AsyncOpenTelemetry"/>
   </root>
 </configuration>

@@ -19,7 +19,9 @@ class HelloServiceIntegrationTest {
 
   @MockitoBean private GreetingServiceClient greetingServiceClient;
 
-  @MockitoBean private KafkaEventPublisher kafkaEventPublisher;
+  @SuppressWarnings("UnusedVariable")
+  @MockitoBean
+  private KafkaEventPublisher kafkaEventPublisher;
 
   @Test
   void shouldLoadContextAndOrchestrate() {

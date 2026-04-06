@@ -5,7 +5,6 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.task.TaskExecutor;
@@ -22,13 +21,6 @@ class HelloServiceTest {
   /** Synchronous executor for unit tests -- runs tasks immediately on the calling thread. */
   private final TaskExecutor directExecutor = (Runnable task) -> task.run();
 
-  @InjectMocks private HelloService helloService;
-
-  /**
-   * Mockito doesn't auto-inject the directExecutor since there's no @Mock for it. We use a setter
-   * or constructor override. Since HelloService uses constructor injection, we need to manually
-   * construct it.
-   */
   @Test
   void shouldOrchestrateCalls() {
     HelloService service =

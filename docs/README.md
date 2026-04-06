@@ -9,6 +9,8 @@
 | Document | Purpose | Status |
 |----------|---------|--------|
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | **Main reference** - Architecture, implementation, test harness, CI/CD | ✅ Complete |
+| **[LOGGING-GUIDE.md](LOGGING-GUIDE.md)** | **Logging configuration** - Current setup, 2026 best practices assessment | ✅ Complete |
+| **[LOGGING-PRODUCTION.md](LOGGING-PRODUCTION.md)** | **Production logging** - Deployment considerations, compliance, optimization | ✅ Complete |
 | **[docker-fixes.md](docker-fixes.md)** | Docker build & runtime troubleshooting | ✅ Reference |
 | **[verification-report-2026-04-02.md](verification-report-2026-04-02.md)** | Verification test report (April 2, 2026) | 📋 Archive |
 
@@ -27,11 +29,13 @@
 - **Git Hooks:** `[../README.md](../README.md)#git-hooks`
 - **Docker Issues:** `[docker-fixes.md](docker-fixes.md)`
 - **Architecture Rules:** `[ARCHITECTURE.md](ARCHITECTURE.md)#5-test-harness`
+- **Logging Configuration:** `[LOGGING-GUIDE.md](LOGGING-GUIDE.md)`
 
 ### For Operations
 - **Start Services:** `[ARCHITECTURE.md](ARCHITECTURE.md)#quick-start`
 - **Healthcheck Config:** `[ARCHITECTURE.md](ARCHITECTURE.md)#42-docker-compose-healthcheck`
 - **Grafana Access:** http://localhost:3000 (admin/admin)
+- **Production Logging:** `[LOGGING-PRODUCTION.md](LOGGING-PRODUCTION.md)`
 
 ---
 
@@ -40,6 +44,8 @@
 ```
 docs/
 ├── ARCHITECTURE.md                  # Main reference (consolidated)
+├── LOGGING-GUIDE.md                 # Logging configuration & best practices
+├── LOGGING-PRODUCTION.md            # Production logging considerations
 ├── docker-fixes.md                  # Docker troubleshooting
 ├── verification-report-*.md         # Verification reports (archive)
 └── README.md                        # This index
@@ -74,12 +80,19 @@ docs/
 - Healthcheck configuration
 - Troubleshooting: [docker-fixes.md](docker-fixes.md)
 
+### Logging
+- Current configuration: [LOGGING-GUIDE.md](LOGGING-GUIDE.md)
+- Production deployment: [LOGGING-PRODUCTION.md](LOGGING-PRODUCTION.md)
+- 2026 best practices assessment
+- OTLP log export to Grafana Loki
+
 ---
 
 ## 📊 Document History
 
 | Date | Change |
 |------|--------|
+| 2026-04-06 | Added logging documentation (LOGGING-GUIDE.md, LOGGING-PRODUCTION.md) |
 | 2026-04-02 | Consolidated 7 docs into 3 (ARCHITECTURE.md, docker-fixes.md, index) |
 | 2026-04-02 | Fixed Docker build and healthcheck issues |
 | 2026-04-02 | Verification report published |

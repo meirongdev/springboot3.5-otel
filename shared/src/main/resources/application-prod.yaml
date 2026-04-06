@@ -1,0 +1,24 @@
+# Production environment configuration
+# Activate with: --spring.profiles.active=prod or SPRING_PROFILES_ACTIVE=prod
+
+logging:
+  level:
+    com.example: info
+    org.springframework.web: warn
+    org.springframework.security: info
+    org.hibernate: warn
+    io.opentelemetry: warn
+
+management:
+  tracing:
+    sampling:
+      probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:0.1}  # 10% default for production
+
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,metrics,prometheus
+
+  endpoint:
+    loggers:
+      enabled: true  # Allow dynamic log level adjustment via /actuator/loggers

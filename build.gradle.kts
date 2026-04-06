@@ -126,7 +126,7 @@ listOf(":hello-service", ":user-service", ":greeting-service").forEach { project
             tasks.withType(JacocoCoverageVerification::class.java).configureEach {
                 dependsOn(tasks.named("jacocoTestReport"))
                 violationRules {
-                    rule { limit { minimum = "0.60".toBigDecimal() } }
+                    rule { limit { minimum = "0.80".toBigDecimal() } }
                 }
             }
 
