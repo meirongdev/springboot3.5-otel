@@ -16,12 +16,15 @@ class HelloServiceIntegrationTest {
   @Autowired private HelloService helloService;
 
   @MockitoBean private UserServiceClient userServiceClient;
-
   @MockitoBean private GreetingServiceClient greetingServiceClient;
 
   @SuppressWarnings("UnusedVariable")
   @MockitoBean
   private KafkaEventPublisher kafkaEventPublisher;
+
+  @SuppressWarnings("UnusedVariable")
+  @MockitoBean
+  private io.micrometer.tracing.Tracer tracer;
 
   @Test
   void shouldLoadContextAndOrchestrate() {
