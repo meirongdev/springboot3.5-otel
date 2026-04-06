@@ -3,8 +3,11 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
   <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
-  <!-- PII redaction filter (runs before any appenders) -->
-  <turboFilter class="com.example.shared.otel.PiiRedactionFilter"/>
+  <!--
+    PII redaction: call PiiRedactor.redact() explicitly at log call sites when logging sensitive
+    data. For automatic redaction on the OTel/Loki export path, use a transform processor in the
+    OpenTelemetry Collector pipeline.
+  -->
 
   <appender name="OpenTelemetry"
             class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
