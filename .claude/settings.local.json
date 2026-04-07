@@ -18,7 +18,30 @@
       "Bash(curl -sv 'http://localhost:3000/api/datasources/proxy/1/api/v1/query?query=http_server_requests_milliseconds_count' -u admin:admin)",
       "Bash(python3 -c \" import sys,json data=json.load\\(sys.stdin\\) status=data.get\\('status',''\\) result=data.get\\('data',{}\\).get\\('result',[]\\) print\\(f'status={status}, streams={len\\(result\\)}'\\) for s in result[:2]: print\\(f' labels: {s[\\\\\"stream\\\\\"]}'\\) vals=s.get\\('values',[]\\) print\\(f' entries: {len\\(vals\\)}'\\) if vals: print\\(f' sample: {vals[0][1][:200]}'\\)\" echo \"\" echo \"=== Check if OTel logs are being received ===\" docker exec grafana-otel-lgtm curl -s 'http://127.0.0.1:3100/loki/api/v1/label/service_name/values')",
       "Bash(docker compose:*)",
-      "Bash(grep -E \"Application\\\\.java$\")"
+      "Bash(grep -E \"Application\\\\.java$\")",
+      "Bash(./gradlew spotlessApply build)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)",
+      "Bash(./gradlew spotlessApply build -x test)",
+      "Bash(./gradlew spotlessCheck :shared:compileJava)",
+      "Bash(find:*)",
+      "Bash(./gradlew spotlessApply:*)",
+      "Bash(./gradlew :hello-service:test --tests \"*RetryExchangeInterceptorTest*shouldCloseResponseBeforeRetrying*\")",
+      "Bash(./gradlew :hello-service:test --tests \"*RetryExchangeInterceptorTest*\")",
+      "Bash(./gradlew :hello-service:test --tests \"*RetryExchangeInterceptorTest*\" -v)",
+      "Bash(./gradlew :hello-service:test --tests \"*HelloServiceTest*\")",
+      "Bash(./gradlew :hello-service:test --tests \"*HelloService*\" -i)",
+      "Bash(./gradlew :hello-service:test --tests \"*HelloService*\")",
+      "Bash(./gradlew spotlessCheck :hello-service:test --tests \"*HelloService*\")",
+      "Bash(./gradlew :hello-service:test -q)",
+      "Bash(./gradlew :hello-service:test)",
+      "Bash(./gradlew :hello-service:test --tests \"*KafkaEventPublisherTest*\")",
+      "Bash(./gradlew :hello-service:test --tests \"*KafkaEventPublisher*\")",
+      "Bash(./gradlew :hello-service:test --tests \"*KafkaEventPublisherTest*\" -i)",
+      "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest*\")",
+      "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest.shouldLogRequestMethodPathAndStatus*\" --info)",
+      "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest*\" --info)"
     ]
   }
 }

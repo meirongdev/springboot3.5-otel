@@ -3,6 +3,10 @@ spring:
     name: greeting-service
   config:
     import: "optional:classpath:application-otel.yaml"
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
 
 server:
   port: 8082

@@ -4,15 +4,21 @@
 spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    # Kafka Tracing: enable Micrometer Observation on producer (KafkaTemplate) and consumer
+    # listener container. These are the correct Spring Boot property paths per §五 of the blog.
+    # Note: spring.kafka.producer.* and spring.kafka.consumer.* map to native Kafka client
+    # config — they do NOT control Spring Kafka's observation feature.
+    template:
+      observation-enabled: true    # KafkaTemplate producer tracing
+    listener:
+      observation-enabled: true    # MessageListenerContainer consumer tracing
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      observation-enabled: true
     consumer:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      observation-enabled: true
       properties:
         spring.json.trusted.packages: "com.example.*"
         spring.json.type.mapping: "greetingRequested:com.example.shared.kafka.event.GreetingRequestedEvent"

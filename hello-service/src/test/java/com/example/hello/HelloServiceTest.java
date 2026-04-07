@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.TraceContext;
 import io.micrometer.tracing.Tracer;
@@ -22,10 +23,18 @@ class HelloServiceTest {
   @Mock private Tracer tracer;
 
   private final TaskExecutor directExecutor = Runnable::run;
+  // ObservationRegistry.NOOP returns null from getCurrentObservation() — matches the
+  // null-guard in HelloService so no NPE occurs in unit tests.
+  private final ObservationRegistry registry = ObservationRegistry.NOOP;
 
   private HelloService service() {
     return new HelloService(
-        userServiceClient, greetingServiceClient, kafkaEventPublisher, directExecutor, tracer);
+        userServiceClient,
+        greetingServiceClient,
+        kafkaEventPublisher,
+        directExecutor,
+        tracer,
+        registry);
   }
 
   @Test

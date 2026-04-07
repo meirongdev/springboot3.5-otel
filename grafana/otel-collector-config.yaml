@@ -22,9 +22,13 @@ processors:
         value: ${env:OTEL_DEPLOYMENT_ENVIRONMENT}
   attributes/sanitize:
     actions:
+      # Hash user.id to preserve trace correlation ability while avoiding raw PII exposure.
+      # Use hash instead of delete so correlated events can still be linked by obfuscated value.
       - key: user.id
-        action: delete
+        action: hash
       - key: user.email
+        action: delete
+      - key: user.phone
         action: delete
 
 exporters:

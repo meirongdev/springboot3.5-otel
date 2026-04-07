@@ -125,6 +125,8 @@ services:
       - OTEL_SERVICE_VERSION=1.0.0
       - OTEL_DEPLOYMENT_ENVIRONMENT=docker-compose
       - OTEL_TRACING_SAMPLING_PROBABILITY=1.0
+      # Redis
+      - REDIS_HOST=redis
       # JFR Profiling (JDK_JAVA_OPTIONS)
       - JDK_JAVA_OPTIONS=-XX:StartFlightRecording=name=production,maxsize=200m,maxage=2h,settings=profile -XX:MaxRAMPercentage=75 -XX:+UseG1GC -Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=10M
       # Actuator
@@ -142,6 +144,8 @@ services:
       otel-collector:
         condition: service_started
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   kafka:
@@ -167,6 +171,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   lgtm-data:

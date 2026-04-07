@@ -1,6 +1,7 @@
 package com.example.hello;
 
 import com.example.shared.kafka.event.GreetingRequestedEvent;
+import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.Tracer;
 import java.time.Instant;
@@ -24,22 +25,33 @@ public class HelloService {
   private final KafkaEventPublisher kafkaEventPublisher;
   private final TaskExecutor taskExecutor;
   private final Tracer tracer;
+  private final ObservationRegistry registry;
 
   public HelloService(
       UserServiceClient userServiceClient,
       GreetingServiceClient greetingServiceClient,
       KafkaEventPublisher kafkaEventPublisher,
       TaskExecutor taskExecutor,
-      Tracer tracer) {
+      Tracer tracer,
+      ObservationRegistry registry) {
     this.userServiceClient = userServiceClient;
     this.greetingServiceClient = greetingServiceClient;
     this.kafkaEventPublisher = kafkaEventPublisher;
     this.taskExecutor = taskExecutor;
     this.tracer = tracer;
+    this.registry = registry;
   }
 
   @Observed(name = "hello.service.getHello", contextualName = "getHello")
   public HelloResponse getHello(Long userId, String acceptLanguage) {
+    // §四 场景③: enrich the @Observed span with a high-cardinality business dimension.
+    // highCardinalityKeyValue writes only to the span attribute, not to Micrometer metrics,
+    // so high-cardinality values like userId are safe here.
+    var current = registry.getCurrentObservation();
+    if (current != null) {
+      current.highCardinalityKeyValue("user.id", userId.toString());
+    }
+
     // Use parallel execution with explicit executor for OTel context propagation.
     // WARNING: Do NOT use CompletableFuture.supplyAsync(supplier) without an executor —
     // it falls back to the common ForkJoinPool, which breaks OTel context propagation.

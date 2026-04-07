@@ -10,42 +10,70 @@ import com.example.shared.kafka.event.GreetingRequestedEvent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 /**
- * Integration test for Kafka consumer using EmbeddedKafka.
+ * Integration test for Kafka consumer using Testcontainers.
  *
  * <p>Verifies the full consumer pipeline: serialization, message delivery, deserialization, and
- * consumer handling logic.
+ * consumer handling logic against a real Kafka broker.
  */
 @SpringBootTest
-@EmbeddedKafka(
-    partitions = 1,
-    topics = {"greeting-events"},
-    brokerProperties = {"listeners=PLAINTEXT://localhost:0"})
-@TestPropertySource(
-    properties = {
-      "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
-      "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer",
-      "spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer",
-      "spring.autoconfigure.exclude=" // Override test profile's Kafka exclusion
-    })
+@Testcontainers
 class GreetingEventConsumerIntegrationTest {
 
+  private static final DockerImageName KAFKA_IMAGE =
+      DockerImageName.parse("confluentinc/cp-kafka:7.6.0");
+
+  @Container private static final KafkaContainer KAFKA = new KafkaContainer(KAFKA_IMAGE);
+
+  @DynamicPropertySource
+  static void kafkaProperties(DynamicPropertyRegistry registry) {
+    registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+    registry.add(
+        "spring.kafka.producer.value-serializer",
+        () -> "org.springframework.kafka.support.serializer.JsonSerializer");
+    registry.add(
+        "spring.kafka.producer.key-serializer",
+        () -> "org.apache.kafka.common.serialization.StringSerializer");
+    registry.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
+    registry.add(
+        "spring.kafka.consumer.properties.spring.json.trusted.packages", () -> "com.example.*");
+    registry.add(
+        "spring.kafka.consumer.properties.spring.json.type.mapping",
+        () -> "greetingRequested:com.example.shared.kafka.event.GreetingRequestedEvent");
+  }
+
+  @BeforeAll
+  static void createTopic() {
+    try (var admin =
+        AdminClient.create(
+            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
+      admin.createTopics(List.of(new NewTopic("greeting-events", 1, (short) 1))).all().get();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create Kafka topic", e);
+    }
+  }
+
   @Autowired private KafkaTemplate<String, Object> kafkaTemplate;
-
-  @Autowired private KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
-
-  @Autowired private GreetingEventConsumer greetingEventConsumer;
 
   private ListAppender<ILoggingEvent> listAppender;
 
@@ -64,6 +92,11 @@ class GreetingEventConsumerIntegrationTest {
     logger.detachAppender(listAppender);
     listAppender.stop();
     listAppender.list.clear();
+  }
+
+  @AfterAll
+  static void tearDownClass() {
+    // Testcontainers handles cleanup automatically
   }
 
   @Test

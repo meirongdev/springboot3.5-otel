@@ -14,6 +14,8 @@ contracts {
 dependencies {
     implementation(project(":shared"))
     implementation("org.springframework.boot:spring-boot-starter-web")
+    // Redis: demonstrates §五 Redis tracing via Lettuce driver (auto-spans for GET/SET)
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.cloud:spring-cloud-starter-contract-verifier")

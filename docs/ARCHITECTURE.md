@@ -1,6 +1,6 @@
 # Architecture & Implementation Guide
 
-**Last Updated:** April 2, 2026  
+**Last Updated:** April 7, 2026
 **Status:** ✅ Complete and Operational
 
 This document consolidates the architecture design, implementation plan, and operational notes for the Spring Boot 3.5 + Java 25 OpenTelemetry Demo project.
@@ -45,15 +45,20 @@ curl http://localhost:8080/api/1
            ┌────────▼─────────┐       ┌────────▼─────────┐
            │   user-service   │       │ greeting-service  │
            │   (port 8081)    │       │   (port 8082)     │
-           │   User Data      │       │   Localization    │
-           └──────────────────┘       └───────────────────┘
+           │  H2 + JDBC trace │       │ Redis cache+spans │
+           └──────────────────┘       └────────┬──────────┘
+                                               │
+                                        ┌──────▼──────┐
+                                        │    Redis     │
+                                        │  (port 6379) │
+                                        └─────────────┘
 ```
 
 | Service | Port | Responsibility |
 |---------|------|----------------|
 | `hello-service` | 8080 | Entry point, orchestrates calls to downstream services |
-| `user-service` | 8081 | User data (H2 + Spring Data JDBC + Flyway) |
-| `greeting-service` | 8082 | Multi-language greetings (en/zh/ja) |
+| `user-service` | 8081 | User data (H2 + Spring Data JDBC + Flyway + JDBC Tracing via `datasource-micrometer`) |
+| `greeting-service` | 8082 | Multi-language greetings (en/zh/ja) with Redis cache (Lettuce auto-spans) |
 
 ### 1.2 Observability Backend
 
@@ -83,6 +88,10 @@ All services export telemetry via OTLP (gRPC :4317 / HTTP :4318).
 | Logs | Logback + OTel Appender | Latest |
 | HTTP Client | Spring RestClient | 3.5+ |
 | Database | H2 + Spring Data JDBC + Flyway | Latest |
+| JDBC Tracing | `datasource-micrometer-spring-boot` | 1.0.6 |
+| Cache | Redis (Lettuce driver) | 7-alpine |
+| Messaging | Kafka | confluent 7.6.0 |
+| Logging Filter | `RequestCompletionLoggingFilter` (body capture) | Custom |
 
 ### 2.2 Quality & Testing
 
@@ -93,7 +102,7 @@ All services export telemetry via OTLP (gRPC :4317 / HTTP :4318).
 | JaCoCo | Coverage | 0.8.15 (60% minimum) |
 | Spring Cloud Contract | Contract testing | 2024.0.x |
 | ArchUnit | Architecture tests | 1.4.1 |
-| Testcontainers | Integration tests | 2.0.4 |
+| Testcontainers | Integration tests (Kafka) | 2.0.4 |
 
 ### 2.3 Spring Boot 3.5 vs 4 Adaptation
 
@@ -137,9 +146,9 @@ JVM metrics, OTLP trace/metric export, and async context propagation are all han
 
 | Module | Components |
 |--------|------------|
-| `hello-service` | `HelloController`, `HelloService`, `UserServiceClient`, `GreetingServiceClient` |
-| `user-service` | `UserController`, `UserService`, `UserRepository`, `User` entity, Flyway migrations |
-| `greeting-service` | `GreetingController`, multi-language support (en/zh/ja) |
+| `hello-service` | `HelloController`, `HelloService` (`@Observed` + `highCardinalityKeyValue`), `UserServiceClient`, `GreetingServiceClient`, `KafkaEventPublisher` (fire-and-forget), `GlobalExceptionHandler` (`Span.current()`), `RetryExchangeInterceptor` |
+| `user-service` | `UserController`, `UserService`, `UserRepository`, `User` entity, Flyway migrations, `GreetingEventConsumer`, `GlobalExceptionHandler` (`Span.current()`), JDBC tracing via `datasource-micrometer` |
+| `greeting-service` | `GreetingController`, `GreetingService` (Redis cache + manual `Observation.start()`), `GlobalExceptionHandler` (`Span.current()`) |
 
 ---
 
@@ -231,11 +240,11 @@ build/
 
 | Type | Tools | Location |
 |------|-------|----------|
-| Unit Tests | JUnit 5 + Mockito | All service modules |
-| Integration Tests | Testcontainers 2.0, `@SpringBootTest` | All service modules |
-| Contract Tests | Spring Cloud Contract | greeting-service, user-service (providers), hello-service (consumer) |
+| Unit Tests | JUnit 5 + Mockito | All service modules (`*Test.java`) |
+| Integration Tests | Testcontainers 2.0 (Kafka), `@SpringBootTest` | user-service (`GreetingEventConsumerIntegrationTest`) |
+| Contract Tests | Spring Cloud Contract | greeting-service, user-service (producers), hello-service (consumer); `GreetingServiceContractTest` uses `@MockitoBean StringRedisTemplate` to avoid live Redis |
 | Architecture Tests | ArchUnit | arch-tests module |
-| End-to-End Tests | Embedded HTTP + stubs | hello-service |
+| End-to-End Tests | Embedded HTTP + StubRunner | hello-service (`HelloControllerEndToEndTest` with downstream stubs) |
 
 ### 5.3 Quality Gates
 
@@ -278,14 +287,51 @@ org.gradle.configuration-cache=true
 
 ## 7. OTel Features Demonstrated
 
+### 7.1 Instrumentation Patterns (§四 of blog post)
+
+| 场景 | Pattern | Where |
+|------|---------|-------|
+| ① `@Observed` AOP | Annotation-driven span per method | `HelloService.getHello()`, `GreetingService.getGreeting()` |
+| ② Manual Observation | `Observation.createNotStarted()` for sub-operations | `GreetingService.resolveFromSource()` (cache-miss path) |
+| ③ Span enrichment | `currentObservation.highCardinalityKeyValue()` | `HelloService` — attaches `user.id` to active span |
+| ④ Error recording | `Span.current().recordException()` + `setStatus(ERROR)` | All `GlobalExceptionHandler` classes |
+
+### 7.2 Component Tracing (§五 of blog post)
+
+| Component | How | Spans Generated |
+|-----------|-----|-----------------|
+| HTTP | `RestClient` + Micrometer auto-config | `http.client.requests` |
+| JDBC | `datasource-micrometer-spring-boot` | `db.query` (user-service) |
+| Redis | Lettuce driver auto-instrumentation | `db.redis` (greeting-service) |
+| Kafka | `spring.kafka.template.observation-enabled` + `spring.kafka.listener.observation-enabled` | `messaging.send` / `messaging.receive` |
+| Request/Response Logging | `RequestCompletionLoggingFilter` (shared module) | Structured log: `method`, `path`, `status`, `durationMs`, `requestBody`, `responseBody` |
+
+### 7.3 All OTel Signals
+
 1. **Automatic HTTP Tracing** - Spring Boot Actuator + Micrometer
-2. **Distributed Tracing** - Cross-service request correlation
-3. **Context Propagation** - Trace context in async tasks
+2. **Distributed Tracing** - Cross-service request correlation with W3C TraceContext
+3. **Context Propagation** - Trace context in async tasks (Virtual Threads + explicit TaskExecutor)
 4. **JVM Metrics** - CPU, memory, threads, class loading
 5. **Custom Metrics** - OTel API Counter creation
-6. **Log Correlation** - Logs with Trace ID / Span ID
-7. **Manual Spans** - Programmatic Span creation
-8. **OTLP Export** - gRPC/HTTP telemetry export
+6. **Log Correlation** - Logs with Trace ID / Span ID via Logback OTel appender
+7. **Manual Spans** - `Observation.createNotStarted()` for fine-grained span creation
+8. **OTLP Export** - HTTP telemetry export to Grafana LGTM stack
+9. **JDBC Tracing** - Auto-wrapped DataSource via `datasource-micrometer-spring-boot`
+10. **Redis Tracing** - Lettuce driver auto-instrumentation via Spring Data Redis
+11. **Kafka Tracing** - KafkaTemplate/Listener observation-enabled for producer/consumer spans
+12. **Request/Response Logging** - Structured HTTP body capture for correlated Loki queries
+13. **PII Handling** - OTel Collector attributes processor: hash `user.id`, delete `user.phone`
+
+### 7.4 ArchUnit Rules Enforced
+
+| Rule | Description |
+|------|-------------|
+| Module isolation | `shared` has no dependency on service modules |
+| Layer separation | Controllers must not access Repositories directly |
+| No circular deps | No circular package dependencies |
+| Record enforcement | DTO/Response/Request types must be records (Java 25) |
+| No manual OTel SDK | No direct `OpenTelemetrySdkBuilder` / provider construction |
+| No raw `Span.current()` | Only `GlobalExceptionHandler` classes may call `Span.current()` |
 
 ---
 

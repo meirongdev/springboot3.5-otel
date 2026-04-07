@@ -22,8 +22,12 @@
       ┌──────────────────┐         ▼
       │greeting-service  │  ┌──────────────┐
       │   :8082          │  │ user-service │
-      └──────────────────┘  │  (Consumer)  │
-                            └──────────────┘
+      │  ┌────────────┐  │  │  (Consumer)  │
+      │  │ Redis cache│  │  └──────────────┘
+      │  └────────────┘  │
+      └──────────────────┘
+
+      Redis :6379  ◄──── greeting-service (cache GET/SET)
 
   All services ──OTLP──► otel-collector ──OTLP──► grafana-otel-lgtm (:3000)
 ```
@@ -31,8 +35,8 @@
 Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 
 - **hello-service** - 入口编排服务，调用下游服务组合响应
-- **user-service** - 用户数据服务（H2 + Spring Data JDBC + Flyway）
-- **greeting-service** - 多语言问候语服务（支持 en/zh/ja）
+- **user-service** - 用户数据服务（H2 + Spring Data JDBC + Flyway + JDBC Tracing）
+- **greeting-service** - 多语言问候语服务（支持 en/zh/ja），带 Redis 缓存层
 - **otel-collector** - Compose 内部 Collector（`otel/opentelemetry-collector-contrib:0.149.0`），统一接收服务 OTLP 数据并转发到 `grafana-otel-lgtm`
 
 ## Tech Stack
@@ -48,6 +52,8 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 | Profiling | JFR (Java Flight Recorder, JDK 内置) |
 | HTTP Client | Spring RestClient |
 | Database | H2 + Spring Data JDBC + Flyway |
+| Cache | **Redis** (Lettuce driver，greeting-service 缓存问候语) |
+| Messaging | Kafka (hello-service → user-service 异步事件) |
 | Backend | Grafana OTEL LGTM |
 | Testing | JUnit 5, Spring Cloud Contract (Contract Testing), ArchUnit |
 | CI | GitHub Actions |
@@ -58,9 +64,11 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 
 This demo includes Kafka for asynchronous event streaming alongside synchronous HTTP communication:
 
-- **Producer**: hello-service publishes `GreetingRequestedEvent` events to the `greeting-events` topic
+- **Producer**: hello-service publishes `GreetingRequestedEvent` events to the `greeting-events` topic via fire-and-forget (`whenComplete` callback) pattern
 - **Consumer**: user-service consumes events for observability and analytics
 - **OTel Tracing**: Kafka producer/consumer spans appear in the same trace as HTTP spans, demonstrating trace context propagation via Kafka headers
+- **Config**: tracing is enabled via `spring.kafka.template.observation-enabled: true` and `spring.kafka.listener.observation-enabled: true` (the correct Spring Boot property paths per §五)
+- **Type Safety**: `KafkaTemplate<String, GreetingRequestedEvent>` provides compile-time type safety
 
 **Kafka in Docker Compose:**
 ```bash
@@ -69,6 +77,46 @@ docker compose up -d kafka    # Start Kafka broker
 
 **Local development (without Docker):**
 Services connect to `localhost:9092` by default. Start Kafka separately or use Docker Compose.
+
+### Redis Integration
+
+greeting-service uses Redis as a caching layer (Lettuce driver). Lettuce automatically generates `db.redis` spans for every cache `GET` and `SET`, demonstrating §五 Redis tracing from the blog post.
+
+```bash
+docker compose up -d redis    # Start Redis
+```
+
+**Local development:** Connects to `localhost:6379` by default (`REDIS_HOST` env var can override).
+
+### JDBC Tracing
+
+user-service uses `datasource-micrometer-spring-boot` to wrap the H2 DataSource with `ObservationProxyDataSource`. This auto-generates `db.query` spans for every SQL statement, demonstrating §五 JDBC tracing.
+
+### Custom Instrumentation Patterns
+
+This project demonstrates all four instrumentation patterns from §四:
+
+| Pattern | Where | How |
+|---------|-------|-----|
+| §四 场景① `@Observed` | `HelloService.getHello()`, `GreetingService.getGreeting()`, `GreetingEventConsumer` | AOP-created span, zero code change |
+| §四 场景② Manual `Observation.start()` | `GreetingService.resolveFromSource()` | Controls span boundary for cache-miss path |
+| §四 场景③ `highCardinalityKeyValue` | `HelloService.getHello()` | Enriches current @Observed span with `user.id` |
+| §四 场景④ `Span.current().recordException()` | All three `GlobalExceptionHandler` classes | Exception stack + ERROR status on span |
+
+### Request/Response Body Logging
+
+The `RequestCompletionLoggingFilter` in the shared module captures HTTP request and response bodies for correlated logging in Grafana Loki:
+
+- Bodies are buffered via `ContentCachingRequestWrapper`/`ContentCachingResponseWrapper` (max 4KB)
+- Logged as structured key-value pairs: `method`, `path`, `status`, `durationMs`, `requestBody`, `responseBody`
+- Actuator paths (`/actuator/**`) are excluded to reduce noise
+
+### ArchUnit Architecture Rules
+
+`arch-tests/` enforces tracing conventions at build time:
+
+- **`noManualOtelSdkConstruction`** — prevents hand-wiring `SdkTracerProvider`/`SdkLoggerProvider`/`SdkMeterProvider`
+- **`noDirectSpanCurrentUsage`** — forbids `Span.current()` in all classes **except** `GlobalExceptionHandler` (§十)
 
 ### Service OTel Configuration Pattern
 
@@ -162,14 +210,18 @@ curl -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" http://localhost:8080/api/1
 
 | Feature | Description |
 |---------|-------------|
-| Distributed Tracing | 跨三个服务的请求链路追踪 |
-| Context Propagation | 异步任务中的 Trace Context 自动传播 |
+| Distributed Tracing | 跨 3+ 服务的请求链路追踪 |
+| Context Propagation | 异步任务中的 Trace Context 自动传播（Virtual Threads + explicit TaskExecutor） |
 | JVM Metrics | CPU、内存、线程、类加载器指标采集 |
 | Custom Metrics | 使用 OTel API 创建自定义 Counter |
 | Log Correlation | 日志自动关联 Trace ID / Span ID |
-| Manual Spans | 使用 OTel API 手动创建 Span |
+| Manual Spans | 使用 Observation API 手动创建 Span |
 | OTLP Export | 通过 OTLP 协议导出所有遥测数据 |
 | HTTP Observation | 自动追踪 HTTP 请求 |
+| **JDBC Tracing** | **`datasource-micrometer-spring-boot` 自动包裹 DataSource 生成 `db.query` spans** |
+| **Redis Tracing** | **Lettuce 驱动自动生成 `db.redis` spans** |
+| **Kafka Tracing** | **KafkaTemplate/Listener observation-enabled 生成 `messaging.send`/`messaging.receive` spans** |
+| **Request/Response Logging** | **结构化日志：method, path, status, durationMs, requestBody, responseBody** |
 | **JFR Profiling** | **Java Flight Recorder 持续性能分析** |
 
 ## Quality & Test Harness
@@ -178,12 +230,13 @@ curl -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" http://localhost:8080/api/1
 
 | Gate | Tool | Description |
 |------|------|-------------|
-| Formatting | Spotless | Google Java Format 1.34.0 |
+| Formatting | Spotless | Google Java Format 1.28.0 |
 | Static Analysis | Error Prone | 编译时静态检查 |
 | Coverage | JaCoCo | 60% 最低覆盖率门禁 |
 | Contract Tests | Spring Cloud Contract | 消费者驱动契约测试 |
 | Architecture Tests | ArchUnit | 模块依赖规则验证 |
-| End-to-End Smoke | JUnit + Stubs | 真实 HTTP 链路测试 |
+| End-to-End Smoke | JUnit + StubRunner | 真实 HTTP 链路 + 契约 stub 验证 |
+| Integration Tests | Testcontainers (Kafka) | Kafka 消费者管道测试 |
 | **OTel Verification** | **verify-otel.sh** | **自动验证遥测数据收集** |
 
 ### 自动化验证流水线

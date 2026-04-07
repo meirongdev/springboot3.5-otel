@@ -38,8 +38,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Three Spring Boot 3.5 / Java 25 microservices demonstrating distributed tracing with OpenTelemetry:
 
 ```
-Client → hello-service (:8080) → user-service (:8081)     [Spring Data JDBC + H2 + Flyway]
-                               → greeting-service (:8082)  [multi-language greetings]
+Client → hello-service (:8080) → user-service (:8081)     [Spring Data JDBC + H2 + Flyway + JDBC Tracing]
+                               → greeting-service (:8082)  [multi-language greetings + Redis cache]
 ```
 
 **`shared` module** (no bootable JAR) provides minimal OTel wiring:
@@ -48,7 +48,16 @@ Client → hello-service (:8080) → user-service (:8081)     [Spring Data JDBC 
 
 Most OTel functionality is handled by Spring Boot 3.5 auto-configuration — JVM metrics, OTLP trace/metric/log export, and context propagation require **zero manual Java code**. Configuration is done entirely in `application.yaml`.
 
-**hello-service** uses `@Observed` on `HelloService` methods to create custom spans. HTTP calls to downstream services use Spring `RestClient`; W3C Trace Context is propagated automatically. Virtual Threads enabled via `spring.threads.virtual.enabled=true`.
+**hello-service** uses `@Observed` on `HelloService.getHello()` (§四 场景①), enriches the current span with `ObservationRegistry.getCurrentObservation().highCardinalityKeyValue("user.id", ...)` (§四 场景③), and delegates parallel downstream calls via an explicit `TaskExecutor` for correct OTel context propagation.
+
+**greeting-service** has a `GreetingService` layer with:
+- `@Observed` on the public entry point (§四 场景①)
+- Manual `Observation.createNotStarted()` for the cache-miss path (§四 场景②)
+- `StringRedisTemplate` for Redis cache — auto-generates `db.redis` spans via Lettuce (§五 Redis)
+
+**user-service** uses `datasource-micrometer-spring-boot` for automatic JDBC span generation (§五 JDBC).
+
+**All `GlobalExceptionHandler` classes** call `Span.current().recordException(ex)` and `Span.current().setStatus(StatusCode.ERROR, ...)` (§四 场景④).
 
 **Observability backend:** `grafana/otel-lgtm` (all-in-one Tempo + Loki + Prometheus). OTLP HTTP endpoint: `:4318`. Grafana UI at `http://localhost:3000` (admin/admin). Custom dashboards (Services Overview, JVM Metrics, Logs & Traces) with metrics using `_milliseconds` naming convention from `micrometer-registry-otlp`.
 
@@ -61,6 +70,13 @@ Spring Boot 3.5 auto-configures most OTel components. The required dependencies:
 - `opentelemetry-exporter-otlp` — trace export
 - `micrometer-registry-otlp` — metrics export (metric names use `_milliseconds` suffix, not `_seconds`)
 - `opentelemetry-logback-appender-1.0` — Logback → OTLP log export
+- `datasource-micrometer-spring-boot:1.0.6` — JDBC span generation (user-service only)
+- `spring-boot-starter-data-redis` — Redis tracing via Lettuce auto-instrumentation (greeting-service only)
+
+**Kafka observation properties** (correct paths per Spring Boot):
+- `spring.kafka.template.observation-enabled: true` — KafkaTemplate producer tracing
+- `spring.kafka.listener.observation-enabled: true` — listener container consumer tracing
+- ⚠️ `spring.kafka.producer.*` / `spring.kafka.consumer.*` are native Kafka client properties — NOT observation flags
 
 **Key config in `application.yaml`:**
 - `management.otlp.logging.endpoint` — OTLP logs export (Spring Boot 3.4+ feature)
@@ -80,7 +96,7 @@ Spring Boot 3.5 auto-configures most OTel components. The required dependencies:
 | Architecture | ArchUnit 1.4.1 | `arch-tests/` module |
 | End-to-end | Embedded `HttpServer` stubs | `HelloControllerEndToEndTest` |
 
-ArchUnit enforces: `shared` has no dependencies on service modules; controllers don't access repositories directly; no circular dependencies; DTO/Response/Request types must be records; no manual OTel SDK provider construction.
+**ArchUnit enforces:** `shared` has no dependencies on service modules; controllers don't access repositories directly; no circular dependencies; DTO/Response/Request types must be records; no manual OTel SDK provider construction; `Span.current()` is only allowed in `GlobalExceptionHandler` classes.
 
 ## CI Pipeline
 

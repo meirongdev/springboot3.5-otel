@@ -16,6 +16,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation("org.springframework.kafka:spring-kafka")
+    // JDBC tracing: wraps DataSource with ObservationProxyDataSource to generate db.query spans
+    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.6")
     runtimeOnly("com.h2database:h2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

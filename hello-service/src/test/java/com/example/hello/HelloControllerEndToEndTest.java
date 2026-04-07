@@ -1,85 +1,47 @@
 package com.example.hello;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doAnswer;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cloud.contract.stubrunner.spring.AutoConfigureStubRunner;
-import org.springframework.cloud.contract.stubrunner.spring.StubRunnerPort;
 import org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end test using contract stubs for downstream services.
  *
- * <p>TODO: This test has a pre-existing issue where the stub header matching doesn't work correctly
- * with the weighted Accept-Language normalization. The test expects Chinese greeting but receives
- * English. See: https://github.com/example/springboot3.5-otel/issues/XXX
+ * <p>StubRunner resolves the stub ports at runtime and injects them via
+ * ${stubrunner.runningstubs.<artifactId>.port} placeholders.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {
+      "user.service.url=http://localhost:${stubrunner.runningstubs.user-service.port:8081}",
+      "greeting.service.url=http://localhost:${stubrunner.runningstubs.greeting-service.port:8082}"
+    })
 @ActiveProfiles("test")
-@Disabled("Pre-existing issue: stub header matching fails with weighted Accept-Language")
 @AutoConfigureStubRunner(
     ids = {"com.example:greeting-service:+:stubs", "com.example:user-service:+:stubs"},
     stubsMode = StubRunnerProperties.StubsMode.CLASSPATH)
 class HelloControllerEndToEndTest {
 
-  @SuppressWarnings("UnusedVariable")
   @MockitoBean
-  private KafkaTemplate<String, Object> kafkaTemplate;
-
-  @StubRunnerPort("user-service")
-  int userServicePort;
-
-  @StubRunnerPort("greeting-service")
-  int greetingServicePort;
+  private org.springframework.kafka.core.KafkaTemplate<
+          String, com.example.shared.kafka.event.GreetingRequestedEvent>
+      kafkaTemplate;
 
   @LocalServerPort private int port;
 
   @Autowired private TestRestTemplate restTemplate;
-
-  @MockitoSpyBean private GreetingServiceClient greetingServiceClient;
-  @MockitoSpyBean private UserServiceClient userServiceClient;
-
-  @org.junit.jupiter.api.BeforeEach
-  void setup() {
-    // Intercept and redirect to the correct stub port
-    doAnswer(
-            invocation -> {
-              String lang = invocation.getArgument(0);
-              GreetingServiceClient clientWithCorrectPort =
-                  new GreetingServiceClient(
-                      org.springframework.web.client.RestClient.builder().build(),
-                      "http://localhost:" + greetingServicePort);
-              return clientWithCorrectPort.getGreeting(lang);
-            })
-        .when(greetingServiceClient)
-        .getGreeting(org.mockito.ArgumentMatchers.anyString());
-
-    doAnswer(
-            invocation -> {
-              Long id = invocation.getArgument(0);
-              UserServiceClient clientWithCorrectPort =
-                  new UserServiceClient(
-                      org.springframework.web.client.RestClient.builder().build(),
-                      "http://localhost:" + userServicePort);
-              return clientWithCorrectPort.getUser(id);
-            })
-        .when(userServiceClient)
-        .getUser(org.mockito.ArgumentMatchers.anyLong());
-  }
 
   @Test
   void shouldNormalizeWeightedAcceptLanguageForDownstreamRequests() {
@@ -99,5 +61,23 @@ class HelloControllerEndToEndTest {
     assertThat(response.getBody().userName()).isEqualTo("Alice");
     assertThat(response.getBody().greeting()).isEqualTo("你好，世界！");
     assertThat(response.getBody().language()).isEqualTo("zh");
+  }
+
+  @Test
+  void shouldReturnEnglishGreetingForEnglishRequest() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add("Accept-Language", "en-US,en;q=0.9");
+
+    var response =
+        restTemplate.exchange(
+            "http://localhost:" + port + "/api/1",
+            HttpMethod.GET,
+            new HttpEntity<>(headers),
+            HelloResponse.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().greeting()).isEqualTo("Hello, World!");
+    assertThat(response.getBody().language()).isEqualTo("en");
   }
 }
