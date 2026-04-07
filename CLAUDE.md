@@ -35,16 +35,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Three Spring Boot 3.5 / Java 25 microservices demonstrating distributed tracing with OpenTelemetry:
+Three Spring Boot 3.5.12 / Java 25 microservices demonstrating distributed tracing with OpenTelemetry:
 
 ```
 Client → hello-service (:8080) → user-service (:8081)     [Spring Data JDBC + H2 + Flyway + JDBC Tracing]
                                → greeting-service (:8082)  [multi-language greetings + Redis cache]
 ```
 
-**`shared` module** (no bootable JAR) provides minimal OTel wiring:
-- `OtelLogAppenderInstaller` — connects Spring-managed `OpenTelemetry` bean to the Logback appender declared in `logback-spring.xml`
+**`shared` module** (no bootable JAR) provides OTel wiring via Spring Boot auto-configuration:
+- `SharedOtelAutoConfiguration` — registers `OtelLogAppenderInstaller` when `management.otlp.logging.endpoint` is configured
+- `SharedHttpAutoConfiguration` — registers `RequestCompletionLoggingFilter` in servlet web environments
+- `AutoConfiguration.imports` — registers both auto-configurations for automatic activation
 - `AcceptLanguageNormalizer` — parses weighted `Accept-Language` headers (e.g. `"zh-CN,zh;q=0.9"` → `"zh"`)
+- `PiiRedactor` — utility for redacting PII from log messages
 
 Most OTel functionality is handled by Spring Boot 3.5 auto-configuration — JVM metrics, OTLP trace/metric/log export, and context propagation require **zero manual Java code**. Configuration is done entirely in `application.yaml`.
 
@@ -83,7 +86,7 @@ Spring Boot 3.5 auto-configures most OTel components. The required dependencies:
 - `spring.threads.virtual.enabled: true` + `spring.main.keep-alive: true` — Virtual Threads (keep-alive prevents JVM exit since virtual threads are daemon threads)
 - `management.observations.annotations.enabled: true` — enables `@Observed`
 
-**Logback appender**: Declared in `shared/src/main/resources/logback-spring.xml`, connected to OTel SDK by `OtelLogAppenderInstaller` (Spring Boot 3.5 does not auto-install this bridge).
+**Logback appender**: Declared in `shared/src/main/resources/logback-spring.xml`, connected to OTel SDK by `OtelLogAppenderInstaller` which is registered via `SharedOtelAutoConfiguration` (Spring Boot 3.5 does not auto-install this bridge).
 
 ## Test Structure
 

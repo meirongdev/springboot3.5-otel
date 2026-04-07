@@ -19,7 +19,8 @@ public class GlobalExceptionHandler {
     Span.current().setStatus(StatusCode.ERROR, ex.getMessage());
 
     ProblemDetail problem =
-        ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     problem.setTitle("Internal Server Error");
     problem.setType(URI.create("about:blank"));
     return problem;

@@ -44,7 +44,7 @@ Export path: `All services -> OTLP -> otel-collector -> grafana-otel-lgtm`
 | Component | Technology |
 |-----------|------------|
 | Runtime | Java 25 |
-| Framework | Spring Boot 3.5.0 |
+| Framework | Spring Boot 3.5.12 |
 | Build | Gradle 9.4.1 (Kotlin DSL) |
 | Tracing | **Micrometer Tracing** + OpenTelemetry Bridge (Spring 官方推荐) |
 | Metrics | Micrometer + OTLP Registry (`_milliseconds` 单位) |
@@ -98,7 +98,7 @@ This project demonstrates all four instrumentation patterns from §四:
 
 | Pattern | Where | How |
 |---------|-------|-----|
-| §四 场景① `@Observed` | `HelloService.getHello()`, `GreetingService.getGreeting()`, `GreetingEventConsumer` | AOP-created span, zero code change |
+| §四 场景① `@Observed` | `HelloService.getHello()`, `GreetingService.getGreeting()`, `GreetingEventConsumer`, `KafkaEventPublisher` | AOP-created span, zero code change |
 | §四 场景② Manual `Observation.start()` | `GreetingService.resolveFromSource()` | Controls span boundary for cache-miss path |
 | §四 场景③ `highCardinalityKeyValue` | `HelloService.getHello()` | Enriches current @Observed span with `user.id` |
 | §四 场景④ `Span.current().recordException()` | All three `GlobalExceptionHandler` classes | Exception stack + ERROR status on span |
@@ -420,7 +420,8 @@ make test-arch       # 运行架构测试
 
 ```
 springboot3.5-otel/
-├── shared/              # 公共 OTel 配置模块（OtelLogAppenderInstaller + logback-spring.xml）
+├── shared/              # 公共 OTel 配置模块（自动配置 + logback-spring.xml）
+│   └── META-INF/spring/ # Spring Boot AutoConfiguration.imports 注册文件
 ├── hello-service/       # 编排服务 (:8080)
 ├── user-service/        # 用户服务 (:8081)
 ├── greeting-service/    # 问候语服务 (:8082)
@@ -458,17 +459,18 @@ springboot3.5-otel/
 
 ## Spring Boot 3.5 Adaptation Notes
 
-本项目与基于 Spring Boot 4 的参考项目的主要区别：
+本项目与 Spring Boot 4 / Spring Boot 4.0 参考项目的主要区别：
 
 | Feature | Spring Boot 4 | Spring Boot 3.5 |
 |---------|---------------|-----------------|
 | OTel Starter | `spring-boot-starter-opentelemetry` | 不可用 |
 | Tracing Bridge | 内置 | `micrometer-tracing-bridge-otel` |
 | OTLP Export | 自动配置 | 手动添加 `opentelemetry-exporter-otlp` |
-| Logback Appender | 自动安装 | `logback-spring.xml` + `OtelLogAppenderInstaller`（需手动桥接） |
+| Logback Appender | 自动安装 | `logback-spring.xml` + `SharedOtelAutoConfiguration`（自动配置桥接） |
 | Metrics Export | 内置 OTLP | `micrometer-registry-otlp`（`_milliseconds` 单位） |
 | Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | RestClient | N/A | Spring Boot 3.5 原生支持（3.2+ 引入） |
+| Shared Module | N/A | `@AutoConfiguration` + `AutoConfiguration.imports`（非 scanBasePackages） |
 
 
 ## Screenshots
@@ -506,6 +508,54 @@ GitHub Actions 工作流 (`.github/workflows/ci.yml`)：
 - **质量检查**: Spotless 格式化、Error Prone 静态分析
 - **测试**: 单元测试、契约测试、架构测试
 - **产物**: Spring Cloud Contract stubs、JaCoCo 报告、测试报告
+
+## 设计取舍说明（Demo vs Production）
+
+本项目以演示 OpenTelemetry 可观测性为首要目标，部分实现有意偏离生产最佳实践。以下逐项说明现状及原因。
+
+### Actuator 端点暴露范围
+
+**现状**：三个服务均暴露 `health, info, metrics, prometheus`，未引入 Spring Security。
+
+**原因**：`metrics` 和 `prometheus` 端点是 Grafana/Prometheus 抓取 JVM 指标和 RED 指标的必要入口，是本 Demo 核心演示内容之一。本地运行不依赖网络隔离。生产环境应增加 Spring Security 或通过 `management.endpoints.access.*` 配置仅允许来自 Prometheus 抓取 IP 的请求。
+
+### `shared` 模块自动配置
+
+**现状**：`shared` 模块通过 Spring Boot 标准的 `@AutoConfiguration` + `AutoConfiguration.imports` 机制向各服务注册共享 Bean。
+
+**实现**：`SharedOtelAutoConfiguration` 负责注册 `OtelLogAppenderInstaller`（仅在 `management.otlp.logging.endpoint` 配置存在时激活），`SharedHttpAutoConfiguration` 负责注册 `RequestCompletionLoggingFilter`（仅在 Web 环境下激活）。服务无需修改组件扫描范围，导入 `shared` 依赖后自动配置生效。这是 Spring Boot 官方推荐的可复用库封装方式，支持精确的 `@ConditionalOnXxx` 控制，避免包结构强耦合。
+
+### HTTP 客户端配置
+
+**现状**：`HttpClientConfig` 手动构造 `SimpleClientHttpRequestFactory`，超时和 retry 策略固化在代码中（`RetryExchangeInterceptor`）。
+
+**原因**：Demo 中直接写明配置更易读。生产环境应将 timeout、retry 参数收敛到 `@ConfigurationProperties`，并考虑使用 `RestClient.Builder` 的集中式 `customize` 方式，便于按环境调整和测试。
+
+### `RequestCompletionLoggingFilter` 记录请求/响应 Body
+
+**现状**：`shared` 模块的过滤器会记录每个非 Actuator 请求的 request/response body（上限 4KB），输出到结构化日志。
+
+**原因**：此为 **刻意设计**，目的是在 Grafana Loki 的"Logs & Traces"面板中展示关联日志的实际内容，直观呈现 OTel 日志链路能力。生产环境应仅记录元数据（method/path/status/durationMs），或对特定端点白名单开启 body 记录，避免日志膨胀和敏感信息泄露。
+
+### ProblemDetail 异常响应内容
+
+**现状（已修复）**：`GlobalExceptionHandler` 返回通用错误描述（`"A downstream service is temporarily unavailable"` / `"An unexpected error occurred"`），不再将 `ex.getMessage()` 直接写入 HTTP 响应 body。
+
+**原因**：原实现会把下游地址、连接失败原因等内部细节暴露给调用方。内部异常的完整信息仍然通过 `Span.current().recordException(ex)` 保留在 span events 中，并由日志输出，不影响可观测性。
+
+### `@Value` 默认端口
+
+**现状（已修复）**：`HttpClientConfig` 中 `@Value` 的内嵌默认值已从 `8081`/`8082` 修正为 `18081`/`18082`，与各服务 `application.yaml` 中的实际 `server.port` 一致。
+
+**原因**：原默认值与实际配置不符，若配置键缺失会导致连接错误端口。生产环境建议将服务地址进一步收敛到 `@ConfigurationProperties` 记录类，以获得类型安全和 IDE 补全支持。
+
+### 虚拟线程 + `spring.main.keep-alive`
+
+**现状（已修复）**：`shared/application.yaml` 同时开启 `spring.threads.virtual.enabled: true` 和 `spring.main.keep-alive: true`。
+
+**原因**：虚拟线程是 daemon 线程。若仅开启虚拟线程而不设置 `keep-alive`，当所有平台线程结束后 JVM 可能提前退出。Spring Boot 官方文档明确建议 Web 服务在启用虚拟线程时同时开启此项。
+
+---
 
 ## License
 

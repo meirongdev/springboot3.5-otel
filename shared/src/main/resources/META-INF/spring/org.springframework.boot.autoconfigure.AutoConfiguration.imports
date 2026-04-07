@@ -1,0 +1,2 @@
+com.example.shared.otel.SharedOtelAutoConfiguration
+com.example.shared.http.SharedHttpAutoConfiguration

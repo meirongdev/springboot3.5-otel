@@ -65,7 +65,7 @@ springboot3.5-otel/
 | Component | Technology |
 |-----------|------------|
 | Runtime | Java 25 |
-| Framework | Spring Boot 3.5.0 |
+| Framework | Spring Boot 3.5.12 |
 | Build | Gradle 9.4.1 (Kotlin DSL) |
 | Tracing | Micrometer Tracing + OpenTelemetry Bridge |
 | Metrics | Micrometer + OTLP Registry |
@@ -205,9 +205,10 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 | OTel Starter | `spring-boot-starter-opentelemetry` | Not available |
 | Tracing Bridge | Built-in | `micrometer-tracing-bridge-otel` |
 | OTLP Export | Auto-configured | Manual `opentelemetry-exporter-otlp` |
-| Logback Appender | Auto-installed | `logback-spring.xml` + `OtelLogAppenderInstaller` |
+| Logback Appender | Auto-installed | `logback-spring.xml` + `SharedOtelAutoConfiguration` (auto-config bridge) |
 | Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | Metrics Export | Built-in OTLP | `micrometer-registry-otlp` |
+| Shared Module | N/A | `@AutoConfiguration` + `AutoConfiguration.imports` (not scanBasePackages) |
 
 ## Module Details
 
@@ -215,9 +216,12 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 
 Shared OTel configuration used by all services. Most OTel wiring is handled by Spring Boot auto-configuration; the shared module provides:
 
-- `OtelLogAppenderInstaller` - Bridges Spring-managed `OpenTelemetry` bean to Logback appender (Spring Boot 3.5 does not auto-install this)
-- `AcceptLanguageNormalizer` - Language tag normalization utility (weighted `Accept-Language` → simple tag)
-- `logback-spring.xml` - Declares the OpenTelemetry Logback appender for OTLP log export
+- `SharedOtelAutoConfiguration` — Registers `OtelLogAppenderInstaller` when `management.otlp.logging.endpoint` is configured (bridges Spring-managed `OpenTelemetry` bean to Logback appender; Spring Boot 3.5 does not auto-install this)
+- `SharedHttpAutoConfiguration` — Registers `RequestCompletionLoggingFilter` in servlet web environments
+- `AutoConfiguration.imports` — `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` registers both auto-configurations for automatic activation
+- `AcceptLanguageNormalizer` — Language tag normalization utility (weighted `Accept-Language` → simple tag)
+- `PiiRedactor` — PII redaction utility for log messages
+- `logback-spring.xml` — Declares the OpenTelemetry Logback appender for OTLP log export
 
 ### hello-service
 

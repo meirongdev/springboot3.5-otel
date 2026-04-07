@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@SpringBootApplication(scanBasePackages = {"com.example.hello", "com.example.shared"})
+@SpringBootApplication
 @EnableAsync
 @EnableRetry
 public class HelloServiceApplication {

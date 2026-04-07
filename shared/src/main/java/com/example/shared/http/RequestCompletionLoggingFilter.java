@@ -9,7 +9,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
@@ -18,7 +17,6 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
  * Logs request completion details so Grafana Loki dashboards have recent correlated application
  * logs.
  */
-@Component
 public class RequestCompletionLoggingFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(RequestCompletionLoggingFilter.class);
