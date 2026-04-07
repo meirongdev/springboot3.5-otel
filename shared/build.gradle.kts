@@ -24,15 +24,15 @@ dependencies {
     api("io.micrometer:micrometer-tracing-bridge-otel")
 
     // OpenTelemetry SDK + OTLP Exporter
-    api("io.opentelemetry:opentelemetry-api")
-    api("io.opentelemetry:opentelemetry-exporter-otlp")
+    // Explicitly pin to 1.49.0 to match opentelemetry-logback-appender 2.13.0-alpha requirements
+    // (Spring Boot 3.5.12 manages 1.47.0 which lacks the setException method needed by the appender)
+    api("io.opentelemetry:opentelemetry-api:1.49.0")
+    api("io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
 
     // Micrometer OTLP Registry for metrics
     api("io.micrometer:micrometer-registry-otlp")
 
     // OpenTelemetry Logback Appender (from instrumentation project)
-    // Note: This is the recommended approach for Spring Boot 3.5 as native OTLP log export
-    // still requires the Logback appender bridge for full functionality
     api("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.13.0-alpha")
 
     // Spring Kafka for Kafka producer/consumer support

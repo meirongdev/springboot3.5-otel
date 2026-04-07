@@ -34,6 +34,7 @@ processors:
 exporters:
   otlphttp/lgtm:
     endpoint: http://grafana-otel-lgtm:4318
+    # Note: Using legacy alias for compatibility; "otlp_http" is preferred in newer versions
 
 extensions:
   health_check:
@@ -54,3 +55,6 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, resource/defaults, attributes/sanitize, batch]
       exporters: [otlphttp/lgtm]
+  telemetry:
+    logs:
+      level: "info"

@@ -3,7 +3,7 @@
 
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     # Kafka Tracing: enable Micrometer Observation on producer (KafkaTemplate) and consumer
     # listener container. These are the correct Spring Boot property paths per §五 of the blog.
     # Note: spring.kafka.producer.* and spring.kafka.consumer.* map to native Kafka client

@@ -25,3 +25,9 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.apache.kafka.clients.NetworkClient: ERROR
+    org.springframework.kafka: WARN

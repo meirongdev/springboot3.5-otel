@@ -33,3 +33,4 @@ logging:
   level:
     org.springframework.jdbc: debug
     org.flywaydb: debug
+    org.apache.kafka.clients.NetworkClient: ERROR

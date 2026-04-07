@@ -59,6 +59,27 @@ spotless {
 }
 
 subprojects {
+    // Force OpenTelemetry 1.49.0 to match logback-appender 2.13.0-alpha requirements
+    // Spring Boot 3.5.12 manages 1.47.0 which lacks the setException method
+    pluginManager.withPlugin("io.spring.dependency-management") {
+        extensions.configure<DependencyManagementExtension> {
+            dependencies {
+                dependency("io.opentelemetry:opentelemetry-api:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-sdk:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-sdk-common:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-sdk-trace:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-sdk-metrics:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-sdk-logs:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-exporter-otlp-common:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-exporter-common:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-exporter-sender-okhttp:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-context:1.49.0")
+                dependency("io.opentelemetry:opentelemetry-extension-trace-propagators:1.49.0")
+            }
+        }
+    }
+
     pluginManager.withPlugin("java") {
         apply(plugin = "net.ltgt.errorprone")
 

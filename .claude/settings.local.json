@@ -41,7 +41,10 @@
       "Bash(./gradlew :hello-service:test --tests \"*KafkaEventPublisherTest*\" -i)",
       "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest*\")",
       "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest.shouldLogRequestMethodPathAndStatus*\" --info)",
-      "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest*\" --info)"
+      "Bash(./gradlew :shared:test --tests \"*RequestCompletionLoggingFilterTest*\" --info)",
+      "Bash(docker exec:*)",
+      "Bash(./gradlew :hello-service:build :user-service:build -x test)",
+      "Bash(wait)"
     ]
   }
 }

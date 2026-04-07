@@ -54,7 +54,9 @@
       "Bash(identify *)",
       "Bash(npm *)",
       "Bash(npx *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(find *)",
+      "Bash(docker logs *)"
     ]
   },
   "$version": 3
