@@ -40,6 +40,11 @@ help:
 	@echo "  make verify-otel-wait    - Explicit wait-mode alias for make verify-otel"
 	@echo "  make dev-full       - Full dev workflow: build + test + verify OTel"
 	@echo ""
+	@echo "Screenshots (Playwright):"
+	@echo "  make playwright-install    - Install Playwright and Chromium browser"
+	@echo "  make playwright-screenshots - Capture Grafana dashboard screenshots"
+	@echo "  make screenshots           - Full workflow: install + screenshot"
+	@echo ""
 	@echo "Profiling (JFR):"
 	@echo "  make jfr-run        - Run hello-service with JFR profiling"
 	@echo "  make jfr-check      - Check active JFR recordings"
@@ -248,3 +253,33 @@ hooks-remove:
 	else \
 		echo "No pre-commit hook found"; \
 	fi
+
+# =============================================================================
+# Grafana Screenshot Automation (Playwright)
+# =============================================================================
+
+# Install Playwright and Chromium browser for screenshots
+playwright-install:
+	@echo "── Installing Playwright and Chromium browser ──"
+	@if [ ! -f package.json ]; then npm init -y > /dev/null 2>&1; fi
+	@npm install --save-dev playwright
+	@npx playwright install chromium
+	@echo "✓ Playwright and Chromium installed"
+
+# Capture all Grafana dashboard screenshots
+playwright-screenshots:
+	@echo "── Capturing Grafana screenshots with Playwright ──"
+	@mkdir -p docs/screenshots
+	@node scripts/screenshot-grafana.mjs
+	@echo ""
+	@echo "Screenshots saved to: docs/screenshots/"
+	@ls -lh docs/screenshots/*.png 2>/dev/null || echo "No screenshots generated"
+
+# Full workflow: install + screenshot + update README
+screenshots: playwright-install playwright-screenshots
+	@echo ""
+	@echo "✓ Screenshots complete!"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Verify screenshots in: docs/screenshots/"
+	@echo "  2. git add -A && git commit -m \"docs: add Grafana dashboard screenshots\""

@@ -470,6 +470,32 @@ springboot3.5-otel/
 | Virtual Threads | N/A | `spring.threads.virtual.enabled: true` |
 | RestClient | N/A | Spring Boot 3.5 原生支持（3.2+ 引入） |
 
+
+## Screenshots
+
+### Services Overview
+
+![Services Overview](docs/screenshots/services-overview.png)
+
+*Services dashboard showing request rate, error rate, and latency across all services*
+
+### Logs & Traces
+
+![Logs & Traces](docs/screenshots/logs-traces.png)
+
+*Combined view of application logs and distributed traces*
+
+### Distributed Tracing
+
+![Distributed Trace](docs/screenshots/distributed-trace.png)
+
+*End-to-end request flow across hello-service → user-service → greeting-service*
+
+### JVM Metrics
+
+![JVM Metrics](docs/screenshots/jvm-metrics.png)
+
+*JVM resource utilization: CPU, memory, threads*
 ## CI/CD
 
 GitHub Actions 工作流 (`.github/workflows/ci.yml`)：

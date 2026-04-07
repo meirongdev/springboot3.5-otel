@@ -26,14 +26,14 @@ public class HttpClientConfig {
   @Bean
   public UserServiceClient userServiceClient(
       RestClient restClient,
-      @Value("${user.service.url:http://localhost:8081}") String userServiceUrl) {
+      @Value("${user.service.url:http://localhost:18081}") String userServiceUrl) {
     return new UserServiceClient(restClient, userServiceUrl);
   }
 
   @Bean
   public GreetingServiceClient greetingServiceClient(
       RestClient restClient,
-      @Value("${greeting.service.url:http://localhost:8082}") String greetingServiceUrl) {
+      @Value("${greeting.service.url:http://localhost:18082}") String greetingServiceUrl) {
     return new GreetingServiceClient(restClient, greetingServiceUrl);
   }
 }

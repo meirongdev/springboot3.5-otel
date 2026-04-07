@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
 
     ProblemDetail problem =
         ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_GATEWAY, "Downstream service unavailable: " + ex.getMessage());
+            HttpStatus.BAD_GATEWAY, "A downstream service is temporarily unavailable");
     problem.setTitle("Downstream Service Unavailable");
     problem.setType(URI.create("about:blank"));
     return problem;
@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
     Span.current().setStatus(StatusCode.ERROR, ex.getMessage());
 
     ProblemDetail problem =
-        ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     problem.setTitle("Internal Server Error");
     problem.setType(URI.create("about:blank"));
     return problem;

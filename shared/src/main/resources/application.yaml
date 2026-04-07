@@ -3,6 +3,8 @@
 # imported explicitly by each service that needs them.
 
 spring:
+  main:
+    keep-alive: true  # Required with virtual threads (daemon threads) to keep JVM alive
   threads:
     virtual:
       enabled: true

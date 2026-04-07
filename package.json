@@ -1,0 +1,27 @@
+{
+  "name": "springboot3.5-otel",
+  "version": "1.0.0",
+  "description": "基于 Spring Boot 3.5 和 Java 25 的 OpenTelemetry 可观测性示例项目，展示分布式追踪（Traces）、指标（Metrics）和日志（Logs）的完整集成。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meirongdev/springboot3.5-otel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/meirongdev/springboot3.5-otel/issues"
+  },
+  "homepage": "https://github.com/meirongdev/springboot3.5-otel#readme",
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}

@@ -80,7 +80,7 @@ Spring Boot 3.5 auto-configures most OTel components. The required dependencies:
 
 **Key config in `application.yaml`:**
 - `management.otlp.logging.endpoint` — OTLP logs export (Spring Boot 3.4+ feature)
-- `spring.threads.virtual.enabled: true` — Virtual Threads (replaces manual `ThreadPoolTaskExecutor`)
+- `spring.threads.virtual.enabled: true` + `spring.main.keep-alive: true` — Virtual Threads (keep-alive prevents JVM exit since virtual threads are daemon threads)
 - `management.observations.annotations.enabled: true` — enables `@Observed`
 
 **Logback appender**: Declared in `shared/src/main/resources/logback-spring.xml`, connected to OTel SDK by `OtelLogAppenderInstaller` (Spring Boot 3.5 does not auto-install this bridge).

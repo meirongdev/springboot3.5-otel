@@ -22,7 +22,7 @@ class GlobalExceptionHandlerTest {
     // then
     assertThat(problem.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
     assertThat(problem.getTitle()).isEqualTo("Internal Server Error");
-    assertThat(problem.getDetail()).isEqualTo("Something went wrong");
+    assertThat(problem.getDetail()).isEqualTo("An unexpected error occurred");
     assertThat(problem.getType()).isEqualTo(URI.create("about:blank"));
   }
 

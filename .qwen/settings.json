@@ -47,7 +47,14 @@
       "Bash(git commit *)",
       "Read(//Users/matthew/projects/meirongdev/blog/content/posts/**)",
       "Bash(mkdir *)",
-      "Bash(tee *)"
+      "Bash(tee *)",
+      "Bash(python3 *)",
+      "Bash(./scripts/screenshot-grafana.sh)",
+      "Bash(file *)",
+      "Bash(identify *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)"
     ]
   },
   "$version": 3
